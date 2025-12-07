@@ -143,8 +143,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.stackored.loc`)"
       - "traefik.http.routers.rabbitmq.service=rabbitmq"
-      - "traefik.http.routers.rabbitmq.entrypoints=web"
+      - "traefik.http.routers.rabbitmq.entrypoints=websecure"
       - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
+      - "traefik.http.routers.rabbitmq.tls=true"
 
 
   elasticsearch:
@@ -204,8 +205,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.sonarqube.rule=Host(`sonarqube.stackored.loc`)"
       - "traefik.http.routers.sonarqube.service=sonarqube"
-      - "traefik.http.routers.sonarqube.entrypoints=web"
+      - "traefik.http.routers.sonarqube.entrypoints=websecure"
       - "traefik.http.services.sonarqube.loadbalancer.server.port=9000"
+      - "traefik.http.routers.sonarqube.tls=true"
 
 
   grafana:
@@ -216,8 +218,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: "admin"
       GF_SECURITY_ADMIN_PASSWORD: "stackored"
-      GF_INSTALL_PLUGINS: "{{ GRAFANA_INSTALL_PLUGINS | default('') }}"
-      GF_SERVER_ROOT_URL: "http://localhost:3001"
+      GF_INSTALL_PLUGINS: ""
+      GF_SERVER_ROOT_URL: "http://grafana.stackored.loc"
 
     volumes:
       - stackored-grafana-data:/var/lib/grafana
@@ -236,8 +238,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=Host(`grafana.stackored.loc`)"
       - "traefik.http.routers.grafana.service=grafana"
-      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grafana.tls=true"
 
 
   kibana:
@@ -273,13 +276,55 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.kibana.rule=Host(`kibana.stackored.loc`)"
       - "traefik.http.routers.kibana.service=kibana"
-      - "traefik.http.routers.kibana.entrypoints=web"
+      - "traefik.http.routers.kibana.entrypoints=websecure"
       - "traefik.http.services.kibana.loadbalancer.server.port=5601"
+      - "traefik.http.routers.kibana.tls=true"
+
+
+  sentry:
+    image: "getsentry/sentry:latest"
+    container_name: "stackored-sentry"
+    restart: unless-stopped
+
+    environment:
+      SENTRY_SECRET_KEY: "stackored-sentry-secret"
+      SENTRY_SINGLE_ORGANIZATION: "true"
+
+    ports:
+      - "9001:9000"
+
+    depends_on:
+      - sentry-redis
+      - sentry-postgres
+
+    networks:
+      - stackored-net
+
+  sentry-redis:
+    image: redis:7
+    container_name: "stackored-sentry-redis"
+    restart: unless-stopped
+    networks:
+      - stackored-net
+
+  sentry-postgres:
+    image: postgres:15
+    container_name: "stackored-sentry-postgres"
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sentry
+      POSTGRES_USER: sentry
+      POSTGRES_PASSWORD: "sentry"
+    volumes:
+      - stackored-sentry-postgres-data:/var/lib/postgresql/data
+    networks:
+      - stackored-net
+
 
 
   tools:
     build:
-      context: ./core/images/tools
+      context: ./core/templates/ui/tools
       dockerfile: Dockerfile
     container_name: "stackored-tools"
     restart: unless-stopped
@@ -298,22 +343,28 @@ services:
       - "traefik.http.services.tools.loadbalancer.server.port=80"
       - "traefik.http.routers.adminer.rule=Host(`adminer.stackored.loc`)"
       - "traefik.http.routers.adminer.service=tools"
-      - "traefik.http.routers.adminer.entrypoints=web"
+      - "traefik.http.routers.adminer.entrypoints=websecure"
+      - "traefik.http.routers.adminer.tls=true"
       - "traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.stackored.loc`)"
       - "traefik.http.routers.phpmyadmin.service=tools"
-      - "traefik.http.routers.phpmyadmin.entrypoints=web"
+      - "traefik.http.routers.phpmyadmin.entrypoints=websecure"
+      - "traefik.http.routers.phpmyadmin.tls=true"
       - "traefik.http.routers.phppgadmin.rule=Host(`phppgadmin.stackored.loc`)"
       - "traefik.http.routers.phppgadmin.service=tools"
-      - "traefik.http.routers.phppgadmin.entrypoints=web"
-      - "traefik.http.routers.phpredmin.rule=Host(`phpredmin.stackored.loc`)"
-      - "traefik.http.routers.phpredmin.service=tools"
-      - "traefik.http.routers.phpredmin.entrypoints=web"
+      - "traefik.http.routers.phppgadmin.entrypoints=websecure"
+      - "traefik.http.routers.phppgadmin.tls=true"
+      - "traefik.http.routers.phpmongo.rule=Host(`phpmongo.stackored.loc`)"
+      - "traefik.http.routers.phpmongo.service=tools"
+      - "traefik.http.routers.phpmongo.entrypoints=websecure"
+      - "traefik.http.routers.phpmongo.tls=true"
       - "traefik.http.routers.phpmemcachedadmin.rule=Host(`phpmemcachedadmin.stackored.loc`)"
       - "traefik.http.routers.phpmemcachedadmin.service=tools"
-      - "traefik.http.routers.phpmemcachedadmin.entrypoints=web"
+      - "traefik.http.routers.phpmemcachedadmin.entrypoints=websecure"
+      - "traefik.http.routers.phpmemcachedadmin.tls=true"
       - "traefik.http.routers.opcache.rule=Host(`opcache.stackored.loc`)"
       - "traefik.http.routers.opcache.service=tools"
-      - "traefik.http.routers.opcache.entrypoints=web"
+      - "traefik.http.routers.opcache.entrypoints=websecure"
+      - "traefik.http.routers.opcache.tls=true"
 
 
   mailhog:
@@ -332,8 +383,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.mailhog.rule=Host(`mailhog.stackored.loc`)"
       - "traefik.http.routers.mailhog.service=mailhog"
-      - "traefik.http.routers.mailhog.entrypoints=web"
+      - "traefik.http.routers.mailhog.entrypoints=websecure"
       - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
+      - "traefik.http.routers.mailhog.tls=true"
 
 
 volumes:
@@ -366,4 +418,7 @@ volumes:
 
 
   stackored-kibana-data:
+
+
+  stackored-sentry-postgres-data:
 

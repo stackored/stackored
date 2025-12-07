@@ -3,9 +3,12 @@ http:
     project2-router:
       rule: "Host(`project2.loc`)"
       service: project2-service
+      entryPoints:
+        - websecure
+      tls: true
 
   services:
     project2-service:
       loadBalancer:
         servers:
-          - url: "http://project2-php:9000"
+          - url: "http://project2-web:80"

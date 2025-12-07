@@ -27,10 +27,10 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.rule=Host(`traefik.stackored.${DEFAULT_TLD_SUFFIX:-loc}`)"
       - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.entrypoints=websecure"
-
+      - "traefik.http.routers.traefik.entrypoints={{ TRAEFIK_ENTRYPOINT }}"
+{{ if TRAEFIK_ENABLE_SSL == 'true' }}
       - "traefik.http.routers.traefik.tls=true"
-
+{{ endif }}
 
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"

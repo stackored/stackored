@@ -1,0 +1,5 @@
+core/certs/*.key
+core/certs/*.crt
+core/certs/*.srl
+stackored/
+core/config/

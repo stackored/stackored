@@ -11,8 +11,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: "{{ GRAFANA_ADMIN_USER | default('admin') }}"
       GF_SECURITY_ADMIN_PASSWORD: "{{ GRAFANA_ADMIN_PASSWORD | default('stackored') }}"
-      GF_INSTALL_PLUGINS: "{{ GRAFANA_INSTALL_PLUGINS | default('') }}"
-      GF_SERVER_ROOT_URL: "{{ GRAFANA_ROOT_URL | default('http://localhost:3001') }}"
+      GF_INSTALL_PLUGINS: ""
+      GF_SERVER_ROOT_URL: "http://grafana.stackored.{{ DEFAULT_TLD_SUFFIX | default('loc') }}"
 
     volumes:
       - stackored-grafana-data:/var/lib/grafana

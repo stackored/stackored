@@ -5,6 +5,6 @@
     "version": "8.3",
     "extensions": ["pdo", "pdo_mysql", "mysqli", "gd", "curl", "zip", "mbstring"]
   },
-  "webserver": "nginx",
+  "webserver": "apache",
   "document_root": "public"
 }

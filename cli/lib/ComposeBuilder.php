@@ -149,6 +149,8 @@ class ComposeBuilder
 	{
 		$labels = [];
 		$suffix = $this->env['DEFAULT_TLD_SUFFIX'] ?? 'loc';
+		$sslEnabled = ($this->env['TRAEFIK_ENABLE_SSL'] ?? 'false') === 'true';
+		$entrypoint = $sslEnabled ? 'websecure' : 'web';
 
 		// Handle Unified Tools Container
 		if ($envKey === 'ENABLE_TOOLS_CONTAINER') {
@@ -156,7 +158,7 @@ class ComposeBuilder
 				'adminer' => 80,
 				'phpmyadmin' => 80,
 				'phppgadmin' => 80,
-				'phpredmin' => 80,
+				'phpmongo' => 80,
 				'phpmemcachedadmin' => 80,
 				'opcache' => 80,
 			];
@@ -169,7 +171,11 @@ class ComposeBuilder
 				$host = "{$tool}.stackored.{$suffix}";
 				$labels[] = "      - \"traefik.http.routers.{$tool}.rule=Host(`{$host}`)\"";
 				$labels[] = "      - \"traefik.http.routers.{$tool}.service=tools\"";
-				$labels[] = "      - \"traefik.http.routers.{$tool}.entrypoints=web\"";
+				$labels[] = "      - \"traefik.http.routers.{$tool}.entrypoints={$entrypoint}\"";
+
+				if ($sslEnabled) {
+					$labels[] = "      - \"traefik.http.routers.{$tool}.tls=true\"";
+				}
 			}
 		}
 		// Handle Legacy/Standalone UI Tools
@@ -191,8 +197,12 @@ class ComposeBuilder
 				$labels[] = "      - \"traefik.enable=true\"";
 				$labels[] = "      - \"traefik.http.routers.{$serviceName}.rule=Host(`{$host}`)\"";
 				$labels[] = "      - \"traefik.http.routers.{$serviceName}.service={$serviceName}\"";
-				$labels[] = "      - \"traefik.http.routers.{$serviceName}.entrypoints=web\"";
+				$labels[] = "      - \"traefik.http.routers.{$serviceName}.entrypoints={$entrypoint}\"";
 				$labels[] = "      - \"traefik.http.services.{$serviceName}.loadbalancer.server.port={$internalPort}\"";
+
+				if ($sslEnabled) {
+					$labels[] = "      - \"traefik.http.routers.{$serviceName}.tls=true\"";
+				}
 			}
 		}
 

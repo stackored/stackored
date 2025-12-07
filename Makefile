@@ -1,24 +1,34 @@
-.PHONY: up down restart logs build-tools
+.PHONY: help up down restart logs ps build-tools generate
 
-# Start the environment (Generate config + Docker Up)
+COMPOSE_FILES = -f stackored.yml -f docker-compose.dynamic.yml -f docker-compose.projects.yml
+
+help:
+	@echo "Stackored Makefile Commands:"
+	@echo "  make up          - Start all services"
+	@echo "  make down        - Stop all services"
+	@echo "  make restart     - Restart all services"
+	@echo "  make logs        - View logs (all services)"
+	@echo "  make ps          - List running containers"
+	@echo "  make build-tools - Rebuild tools container"
+	@echo "  make generate    - Run stackored-generate"
+
 up:
-	php cli/stackored-generate
-	docker-compose -f stackored.yml -f docker-compose.dynamic.yml up -d --remove-orphans
+	docker-compose $(COMPOSE_FILES) up -d
 
-# Stop the environment
 down:
-	docker-compose -f stackored.yml -f docker-compose.dynamic.yml down
+	docker-compose $(COMPOSE_FILES) down
 
-# Alias for down
-stop: down
+restart:
+	docker-compose $(COMPOSE_FILES) restart
 
-# Restart the environment
-restart: down up
-
-# View logs (follow)
 logs:
-	docker-compose -f stackored.yml -f docker-compose.dynamic.yml logs -f
+	docker-compose $(COMPOSE_FILES) logs -f
 
-# Rebuild and update the Unified Tools container
+ps:
+	docker-compose $(COMPOSE_FILES) ps
+
 build-tools:
-	docker-compose -f stackored.yml -f docker-compose.dynamic.yml up -d --build --remove-orphans stackored-tools
+	docker-compose $(COMPOSE_FILES) up -d --build tools
+
+generate:
+	docker run --rm -v "$$(pwd):/app" -w /app php:8.2-cli php cli/stackored-generate--remove-orphans stackored-tools

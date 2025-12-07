@@ -2,11 +2,10 @@ http:
   routers:
     project2-router:
       rule: "Host(`project2.loc`)"
-      service: project1-service
+      service: project2-service
       entryPoints:
         - websecure
-      tls:
-        certResolver: letsencrypt
+      tls: true
 
   services:
     project2-service:

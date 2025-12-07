@@ -5,8 +5,7 @@ http:
       service: project1-service
       entryPoints:
         - websecure
-      tls:
-        certResolver: letsencrypt
+      tls: true
 
   services:
     project1-service:

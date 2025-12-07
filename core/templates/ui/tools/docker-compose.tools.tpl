@@ -5,7 +5,7 @@
 services:
   tools:
     build:
-      context: ./core/images/tools
+      context: ./core/templates/ui/tools
       dockerfile: Dockerfile
     container_name: "stackored-tools"
     restart: unless-stopped

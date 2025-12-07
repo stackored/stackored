@@ -3,9 +3,12 @@ http:
     project1-router:
       rule: "Host(`project1.loc`)"
       service: project1-service
+      entryPoints:
+        - websecure
+      tls: true
 
   services:
     project1-service:
       loadBalancer:
         servers:
-          - url: "http://project1-php:9000"
+          - url: "http://project1-web:80"
