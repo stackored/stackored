@@ -9,11 +9,30 @@ services:
     restart: unless-stopped
 
     environment:
-      SENTRY_SECRET_KEY: "{{ SENTRY_SECRET_KEY | default('stackored-sentry-secret') }}"
+      SENTRY_SECRET_KEY: "{{ SENTRY_SECRET_KEY | default('stackored-sentry-secret-key-change-me') }}"
       SENTRY_SINGLE_ORGANIZATION: "true"
+      
+      # Redis Configuration
+      SENTRY_REDIS_HOST: "sentry-redis"
+      SENTRY_REDIS_PORT: "6379"
+      
+      # PostgreSQL Configuration
+      SENTRY_POSTGRES_HOST: "sentry-postgres"
+      SENTRY_POSTGRES_PORT: "5432"
+      SENTRY_DB_NAME: "sentry"
+      SENTRY_DB_USER: "sentry"
+      SENTRY_DB_PASSWORD: "{{ SENTRY_DB_PASSWORD | default('sentry') }}"
 
     ports:
       - "{{ HOST_PORT_SENTRY | default('9001') }}:9000"
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sentry.rule=Host(`sentry.stackored.loc`)"
+      - "traefik.http.routers.sentry.service=sentry"
+      - "traefik.http.routers.sentry.entrypoints=websecure"
+      - "traefik.http.services.sentry.loadbalancer.server.port=9000"
+      - "traefik.http.routers.sentry.tls=true"
 
     depends_on:
       - sentry-redis

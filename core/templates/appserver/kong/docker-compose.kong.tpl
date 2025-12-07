@@ -18,7 +18,7 @@ services:
       KONG_DECLARATIVE_CONFIG: "/kong/declarative/kong.yml"
 
     volumes:
-      - ./kong/declarative:/kong/declarative
+      - ./core/templates/appserver/kong/kong.yml:/kong/declarative/kong.yml:ro
 
     ports:
       - "{{ HOST_PORT_KONG_PROXY | default('8000') }}:8000"

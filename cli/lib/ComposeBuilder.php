@@ -33,8 +33,8 @@ class ComposeBuilder
 		$volumesContent = "";
 
 		// Detect if Unified Tools should be enabled
-		if ($this->enabled('ENABLE_ADMINER') || $this->enabled('ENABLE_PHPMYADMIN')) {
-			$this->env['ENABLE_TOOLS_CONTAINER'] = 'true';
+		if ($this->enabled('ADMINER_ENABLE') || $this->enabled('PHPMYADMIN_ENABLE')) {
+			$this->env['TOOLS_CONTAINER_ENABLE'] = 'true';
 		}
 
 		$map = [
@@ -43,36 +43,39 @@ class ComposeBuilder
 			'ENABLE_PHP' => 'php/docker-compose.php.tpl',
 
 			// Databases
-			'ENABLE_MYSQL' => 'database/mysql/docker-compose.mysql.tpl',
-			'ENABLE_MARIADB' => 'database/mariadb/docker-compose.mariadb.tpl',
-			'ENABLE_POSTGRES' => 'database/postgres/docker-compose.postgres.tpl',
-			'ENABLE_MONGO' => 'database/mongo/docker-compose.mongo.tpl',
-			'ENABLE_PERCONA' => 'database/percona/docker-compose.percona.tpl',
-			'ENABLE_CASSANDRA' => 'database/cassandra/docker-compose.cassandra.tpl',
-			'ENABLE_COUCHDB' => 'database/couchdb/docker-compose.couchdb.tpl',
-			'ENABLE_COUCHBASE' => 'database/couchbase/docker-compose.couchbase.tpl',
+			'MYSQL_ENABLE' => 'database/mysql/docker-compose.mysql.tpl',
+			'MARIADB_ENABLE' => 'database/mariadb/docker-compose.mariadb.tpl',
+			'POSTGRES_ENABLE' => 'database/postgres/docker-compose.postgres.tpl',
+			'MONGO_ENABLE' => 'database/mongo/docker-compose.mongo.tpl',
+			'PERCONA_ENABLE' => 'database/percona/docker-compose.percona.tpl',
+			'CASSANDRA_ENABLE' => 'database/cassandra/docker-compose.cassandra.tpl',
+			'COUCHDB_ENABLE' => 'database/couchdb/docker-compose.couchdb.tpl',
+			'COUCHBASE_ENABLE' => 'database/couchbase/docker-compose.couchbase.tpl',
 
 			// Caching
-			'ENABLE_REDIS' => 'cache/redis/docker-compose.redis.tpl',
-			'ENABLE_MEMCACHED' => 'cache/memcached/docker-compose.memcached.tpl',
+			'REDIS_ENABLE' => 'cache/redis/docker-compose.redis.tpl',
+			'MEMCACHED_ENABLE' => 'cache/memcached/docker-compose.memcached.tpl',
 
 			// Message Queues
-			'ENABLE_RABBITMQ' => 'messaging/rabbitmq/docker-compose.rabbitmq.tpl',
-			'ENABLE_NATS' => 'messaging/nats/docker-compose.nats.tpl',
-			'ENABLE_KAFKA' => 'messaging/kafka/docker-compose.kafka.tpl',
+			'RABBITMQ_ENABLE' => 'messaging/rabbitmq/docker-compose.rabbitmq.tpl',
+			'NATS_ENABLE' => 'messaging/nats/docker-compose.nats.tpl',
+			'KAFKA_ENABLE' => 'messaging/kafka/docker-compose.kafka.tpl',
+			'KAFBAT_ENABLE' => 'messaging/kafbat/docker-compose.kafbat.tpl',
+			'ACTIVEMQ_ENABLE' => 'messaging/activemq/docker-compose.activemq.tpl',
 
 			// Search & Analytics
-			'ENABLE_ELASTICSEARCH' => 'search/elasticsearch/docker-compose.elasticsearch.tpl',
-			'ENABLE_MEILISEARCH' => 'search/meilisearch/docker-compose.meilisearch.tpl',
-			'ENABLE_SOLR' => 'search/solr/docker-compose.solr.tpl',
+			'ELASTICSEARCH_ENABLE' => 'search/elasticsearch/docker-compose.elasticsearch.tpl',
+			'MEILISEARCH_ENABLE' => 'search/meilisearch/docker-compose.meilisearch.tpl',
+			'SOLR_ENABLE' => 'search/solr/docker-compose.solr.tpl',
 
 			// Monitoring & Observability
-			'ENABLE_SONARQUBE' => 'qa/sonarqube/docker-compose.sonarqube.tpl',
-			'ENABLE_GRAFANA' => 'monitoring/grafana/docker-compose.grafana.tpl',
-			'ENABLE_KIBANA' => 'monitoring/kibana/docker-compose.kibana.tpl',
-			'ENABLE_LOGSTASH' => 'monitoring/logstash/docker-compose.logstash.tpl',
-			'ENABLE_SENTRY' => 'qa/sentry/docker-compose.sentry.tpl',
-			'ENABLE_BLACKFIRE' => 'qa/blackfire/docker-compose.blackfire.tpl',
+			'SONARQUBE_ENABLE' => 'qa/sonarqube/docker-compose.sonarqube.tpl',
+			'GRAFANA_ENABLE' => 'monitoring/grafana/docker-compose.grafana.tpl',
+			'KIBANA_ENABLE' => 'monitoring/kibana/docker-compose.kibana.tpl',
+			'LOGSTASH_ENABLE' => 'monitoring/logstash/docker-compose.logstash.tpl',
+			'SENTRY_ENABLE' => 'qa/sentry/docker-compose.sentry.tpl',
+			'BLACKFIRE_ENABLE' => 'qa/blackfire/docker-compose.blackfire.tpl',
+			'NETDATA_ENABLE' => 'utils/netdata/docker-compose.netdata.tpl',
 
 			// Language Runtimes
 			'ENABLE_NODE' => 'languages/node/docker-compose.node.tpl',
@@ -82,18 +85,17 @@ class ComposeBuilder
 			'ENABLE_RUST' => 'languages/rust/docker-compose.rust.tpl',
 
 			// Application Servers & Proxies
-			'ENABLE_TOMCAT' => 'appserver/tomcat/docker-compose.tomcat.tpl',
-			'ENABLE_KONG' => 'appserver/kong/docker-compose.kong.tpl',
+			'TOMCAT_ENABLE' => 'appserver/tomcat/docker-compose.tomcat.tpl',
+			'KONG_ENABLE' => 'appserver/kong/docker-compose.kong.tpl',
 
 			// UNIFIED TOOLS (Replace individual UIs)
-			'ENABLE_TOOLS_CONTAINER' => 'ui/tools/docker-compose.tools.tpl',
+			'TOOLS_CONTAINER_ENABLE' => 'ui/tools/docker-compose.tools.tpl',
 
 			// Development Tools
-			'ENABLE_MAILHOG' => 'utils/mailhog/docker-compose.mailhog.tpl',
-			'ENABLE_NGROK' => 'utils/ngrok/docker-compose.ngrok.tpl',
-			'ENABLE_NETDATA' => 'utils/netdata/docker-compose.netdata.tpl',
-			'ENABLE_SELENIUM' => 'utils/selenium/docker-compose.selenium.tpl',
-			'ENABLE_COMPOSER' => 'tools/composer/docker-compose.composer.tpl',
+			'MAILHOG_ENABLE' => 'utils/mailhog/docker-compose.mailhog.tpl',
+			'NGROK_ENABLE' => 'utils/ngrok/docker-compose.ngrok.tpl',
+			'SELENIUM_ENABLE' => 'utils/selenium/docker-compose.selenium.tpl',
+			'COMPOSER_ENABLE' => 'tools/composer/docker-compose.composer.tpl',
 		];
 
 		foreach ($map as $envKey => $template) {
@@ -153,22 +155,24 @@ class ComposeBuilder
 		$entrypoint = $sslEnabled ? 'websecure' : 'web';
 
 		// Handle Unified Tools Container
-		if ($envKey === 'ENABLE_TOOLS_CONTAINER') {
+		if ($envKey === 'TOOLS_CONTAINER_ENABLE') {
 			$tools = [
-				'adminer' => 80,
-				'phpmyadmin' => 80,
-				'phppgadmin' => 80,
-				'phpmongo' => 80,
-				'phpmemcachedadmin' => 80,
-				'opcache' => 80,
+				'adminer' => ['port' => 80, 'url_var' => 'ADMINER_URL'],
+				'phpmyadmin' => ['port' => 80, 'url_var' => 'PHPMYADMIN_URL'],
+				'phppgadmin' => ['port' => 80, 'url_var' => 'PHPPGADMIN_URL'],
+				'phpmongo' => ['port' => 80, 'url_var' => 'PHPMONGO_URL'],
+				'phpmemcachedadmin' => ['port' => 80, 'url_var' => 'MEMCACHED_URL'],
+				'opcache' => ['port' => 80, 'url_var' => 'OPCACHE_URL'],
 			];
 
 			$labels[] = "      - \"traefik.enable=true\"";
 			// Define a single service for this container since all tools are on port 80
 			$labels[] = "      - \"traefik.http.services.tools.loadbalancer.server.port=80\"";
 
-			foreach ($tools as $tool => $port) {
-				$host = "{$tool}.stackored.{$suffix}";
+			foreach ($tools as $tool => $config) {
+				$urlVar = $config['url_var'];
+				$customUrl = $this->env[$urlVar] ?? $tool;
+				$host = "{$customUrl}.{$suffix}";
 				$labels[] = "      - \"traefik.http.routers.{$tool}.rule=Host(`{$host}`)\"";
 				$labels[] = "      - \"traefik.http.routers.{$tool}.service=tools\"";
 				$labels[] = "      - \"traefik.http.routers.{$tool}.entrypoints={$entrypoint}\"";
@@ -181,18 +185,27 @@ class ComposeBuilder
 		// Handle Legacy/Standalone UI Tools
 		else {
 			$uiMap = [
-				'ENABLE_RABBITMQ' => ['service' => 'rabbitmq', 'port' => 15672],
-				'ENABLE_MAILHOG' => ['service' => 'mailhog', 'port' => 8025],
-				'ENABLE_KIBANA' => ['service' => 'kibana', 'port' => 5601],
-				'ENABLE_GRAFANA' => ['service' => 'grafana', 'port' => 3000],
-				'ENABLE_SONARQUBE' => ['service' => 'sonarqube', 'port' => 9000],
-				'ENABLE_TRAEFIK' => ['service' => 'traefik', 'port' => 8080],
+				'RABBITMQ_ENABLE' => ['service' => 'rabbitmq', 'port' => 15672, 'url_var' => 'RABBITMQ_URL'],
+				'MAILHOG_ENABLE' => ['service' => 'mailhog', 'port' => 8025, 'url_var' => 'MAILHOG_URL'],
+				'KIBANA_ENABLE' => ['service' => 'kibana', 'port' => 5601, 'url_var' => 'KIBANA_URL'],
+				'GRAFANA_ENABLE' => ['service' => 'grafana', 'port' => 3000, 'url_var' => 'GRAFANA_URL'],
+				'SONARQUBE_ENABLE' => ['service' => 'sonarqube', 'port' => 9000, 'url_var' => 'SONARQUBE_URL'],
+				'SENTRY_ENABLE' => ['service' => 'sentry', 'port' => 9000, 'url_var' => 'SENTRY_URL'],
+				'MEILISEARCH_ENABLE' => ['service' => 'meilisearch', 'port' => 7700, 'url_var' => 'MEILISEARCH_URL'],
+				'TOMCAT_ENABLE' => ['service' => 'tomcat', 'port' => 8080, 'url_var' => 'TOMCAT_URL'],
+				'KONG_ENABLE' => ['service' => 'kong', 'port' => 8001, 'url_var' => 'KONG_ADMIN_URL'],
+				'NETDATA_ENABLE' => ['service' => 'netdata', 'port' => 19999, 'url_var' => 'NETDATA_URL'],
+				'KAFBAT_ENABLE' => ['service' => 'kafbat-ui', 'port' => 8080, 'url_var' => 'KAFBAT_URL'],
+				'ACTIVEMQ_ENABLE' => ['service' => 'activemq', 'port' => 8161, 'url_var' => 'ACTIVEMQ_URL'],
+				'TRAEFIK_ENABLE' => ['service' => 'traefik', 'port' => 8080, 'url_var' => 'TRAEFIK_URL'],
 			];
 
 			if (isset($uiMap[$envKey])) {
 				$serviceName = $uiMap[$envKey]['service'];
 				$internalPort = $uiMap[$envKey]['port'];
-				$host = "{$serviceName}.stackored.{$suffix}";
+				$urlVar = $uiMap[$envKey]['url_var'];
+				$customUrl = $this->env[$urlVar] ?? $serviceName;
+				$host = "{$customUrl}.{$suffix}";
 
 				$labels[] = "      - \"traefik.enable=true\"";
 				$labels[] = "      - \"traefik.http.routers.{$serviceName}.rule=Host(`{$host}`)\"";

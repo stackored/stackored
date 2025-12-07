@@ -13,7 +13,7 @@ services:
 
     volumes:
       - stackored-mysql-data:/var/lib/mysql
-      - ./stackored/core/templates/database/mysql/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+      - ./core/templates/database/mysql/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
 
     command: >
       mysqld
@@ -42,7 +42,7 @@ services:
 
     volumes:
       - stackored-mariadb-data:/var/lib/mysql
-      - ./stackored/core/templates/database/mariadb/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+      - ./core/templates/database/mariadb/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
 
     command: >
       mariadbd
@@ -51,6 +51,28 @@ services:
 
     ports:
       - "3307:3306"
+
+    networks:
+      - stackored-net
+
+
+
+  postgres:
+    image: "postgres:14"
+    container_name: "stackored-postgres"
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: "stackored"
+      POSTGRES_USER: "stackored"
+      POSTGRES_PASSWORD: "root"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+
+    volumes:
+      - stackored-postgres-data:/var/lib/postgresql/data/pgdata
+
+    ports:
+      - "5433:5432"
 
     networks:
       - stackored-net
@@ -69,7 +91,7 @@ services:
 
     volumes:
       - stackored-mongo-data:/data/db
-      - ./stackored/core/templates/database/mongo/mongo.conf:/etc/mongo/mongo.conf:ro
+      - ./core/templates/database/mongo/mongo.conf:/etc/mongo/mongo.conf:ro
 
     ports:
       - "27017:27017"
@@ -88,7 +110,7 @@ services:
 
     volumes:
       - stackored-redis-data:/data
-      - ./stackored/core/templates/cache/redis/redis.conf:/etc/redis/redis.conf:ro
+      - ./core/templates/cache/redis/redis.conf:/etc/redis/redis.conf:ro
 
     ports:
       - "6379:6379"
@@ -123,8 +145,8 @@ services:
     restart: unless-stopped
 
     environment:
-      RABBITMQ_DEFAULT_USER: "stackored"
-      RABBITMQ_DEFAULT_PASS: "stackored"
+      RABBITMQ_DEFAULT_USER: "admin"
+      RABBITMQ_DEFAULT_PASS: "admin"
       RABBITMQ_DEFAULT_VHOST: "/"
 
     volumes:
@@ -146,6 +168,65 @@ services:
       - "traefik.http.routers.rabbitmq.entrypoints=websecure"
       - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
       - "traefik.http.routers.rabbitmq.tls=true"
+
+
+  kafbat-ui:
+    image: "ghcr.io/kafbat/kafka-ui:latest"
+    container_name: "stackored-kafbat"
+    restart: unless-stopped
+
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: "stackored-kafka"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "stackored-kafka:9092"
+
+    ports:
+      - "8080:8080"
+
+    networks:
+      - stackored-net
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kafbat-ui.rule=Host(`kafbat.stackored.loc`)"
+      - "traefik.http.routers.kafbat-ui.service=kafbat-ui"
+      - "traefik.http.routers.kafbat-ui.entrypoints=websecure"
+      - "traefik.http.services.kafbat-ui.loadbalancer.server.port=8080"
+      - "traefik.http.routers.kafbat-ui.tls=true"
+
+
+  activemq:
+    image: "apache/activemq-classic:latest"
+    container_name: "stackored-activemq"
+    restart: unless-stopped
+
+    environment:
+      ACTIVEMQ_ADMIN_LOGIN: "admin"
+      ACTIVEMQ_ADMIN_PASSWORD: "admin"
+
+    ports:
+      - "61616:61616"
+      - "5673:5672"
+      - "61613:61613"
+      - "1883:1883"
+      - "61614:61614"
+      - "8161:8161"
+
+    volumes:
+      - stackored-activemq-data:/opt/apache-activemq/data
+      - stackored-activemq-conf:/opt/apache-activemq/conf
+
+    networks:
+      - stackored-net
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.activemq.rule=Host(`activemq.stackored.loc`)"
+      - "traefik.http.routers.activemq.service=activemq"
+      - "traefik.http.routers.activemq.entrypoints=websecure"
+      - "traefik.http.services.activemq.loadbalancer.server.port=8161"
+      - "traefik.http.routers.activemq.tls=true"
 
 
   elasticsearch:
@@ -175,6 +256,35 @@ services:
     networks:
       - stackored-net
 
+
+
+  meilisearch:
+    image: "getmeili/meilisearch:latest"
+    container_name: "stackored-meilisearch"
+    restart: unless-stopped
+
+    environment:
+      MEILI_MASTER_KEY: "stackored-master-key-change-me"
+      MEILI_ENV: "development"
+      MEILI_NO_ANALYTICS: "true"
+
+    ports:
+      - "7700:7700"
+
+    volumes:
+      - stackored-meili-data:/meili_data
+
+    networks:
+      - stackored-net
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.meilisearch.rule=Host(`meilisearch.stackored.loc`)"
+      - "traefik.http.routers.meilisearch.service=meilisearch"
+      - "traefik.http.routers.meilisearch.entrypoints=websecure"
+      - "traefik.http.services.meilisearch.loadbalancer.server.port=7700"
+      - "traefik.http.routers.meilisearch.tls=true"
 
 
   sonarqube:
@@ -217,9 +327,9 @@ services:
 
     environment:
       GF_SECURITY_ADMIN_USER: "admin"
-      GF_SECURITY_ADMIN_PASSWORD: "stackored"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
       GF_INSTALL_PLUGINS: ""
-      GF_SERVER_ROOT_URL: "http://grafana.stackored.loc"
+      GF_SERVER_ROOT_URL: "http://grafana.stackored.stackored.loc"
 
     volumes:
       - stackored-grafana-data:/var/lib/grafana
@@ -287,11 +397,36 @@ services:
     restart: unless-stopped
 
     environment:
-      SENTRY_SECRET_KEY: "stackored-sentry-secret"
+      SENTRY_SECRET_KEY: "stackored-sentry-secret-key-change-me-in-production"
       SENTRY_SINGLE_ORGANIZATION: "true"
+      
+      # Redis Configuration
+      SENTRY_REDIS_HOST: "sentry-redis"
+      SENTRY_REDIS_PORT: "6379"
+      
+      # PostgreSQL Configuration
+      SENTRY_POSTGRES_HOST: "sentry-postgres"
+      SENTRY_POSTGRES_PORT: "5432"
+      SENTRY_DB_NAME: "sentry"
+      SENTRY_DB_USER: "sentry"
+      SENTRY_DB_PASSWORD: "sentry"
 
     ports:
       - "9001:9000"
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sentry.rule=Host(`sentry.stackored.loc`)"
+      - "traefik.http.routers.sentry.service=sentry"
+      - "traefik.http.routers.sentry.entrypoints=websecure"
+      - "traefik.http.services.sentry.loadbalancer.server.port=9000"
+      - "traefik.http.routers.sentry.tls=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.sentry.rule=Host(`sentry.stackored.loc`)"
+      - "traefik.http.routers.sentry.service=sentry"
+      - "traefik.http.routers.sentry.entrypoints=websecure"
+      - "traefik.http.services.sentry.loadbalancer.server.port=9000"
+      - "traefik.http.routers.sentry.tls=true"
 
     depends_on:
       - sentry-redis
@@ -320,6 +455,113 @@ services:
     networks:
       - stackored-net
 
+
+
+  netdata:
+    image: "netdata/netdata:latest"
+    container_name: "stackored-netdata"
+    restart: unless-stopped
+
+    cap_add:
+      - SYS_PTRACE
+
+    security_opt:
+      - apparmor:unconfined
+
+    ports:
+      - "19999:19999"
+
+    volumes:
+      - netdata-config:/etc/netdata
+      - netdata-lib:/var/lib/netdata
+      - netdata-cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+
+    networks:
+      - stackored-net
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.netdata.rule=Host(`netdata.stackored.loc`)"
+      - "traefik.http.routers.netdata.service=netdata"
+      - "traefik.http.routers.netdata.entrypoints=websecure"
+      - "traefik.http.services.netdata.loadbalancer.server.port=19999"
+      - "traefik.http.routers.netdata.tls=true"
+
+
+  tomcat:
+    image: "tomcat:latest"
+    container_name: "stackored-tomcat"
+    restart: unless-stopped
+
+    volumes:
+      - ./webapps:/usr/local/tomcat/webapps
+      - stackored-tomcat-logs:/usr/local/tomcat/logs
+
+    ports:
+      - "8081:8080"
+
+    networks:
+      - stackored-net
+
+    environment:
+      CATALINA_OPTS: "-Xms512M -Xmx1024M"
+      JAVA_OPTS: "-Djava.awt.headless=true"
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tomcat.rule=Host(`tomcat.stackored.loc`)"
+      - "traefik.http.routers.tomcat.service=tomcat"
+      - "traefik.http.routers.tomcat.entrypoints=websecure"
+      - "traefik.http.services.tomcat.loadbalancer.server.port=8080"
+      - "traefik.http.routers.tomcat.tls=true"
+
+
+  kong:
+    image: "kong:latest"
+    container_name: "stackored-kong"
+    restart: unless-stopped
+
+    environment:
+      KONG_DATABASE: "off"
+      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+      KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+      KONG_PROXY_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_DECLARATIVE_CONFIG: "/kong/declarative/kong.yml"
+
+    volumes:
+      - ./core/templates/appserver/kong/kong.yml:/kong/declarative/kong.yml:ro
+
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+      - "8001:8001"
+      - "8444:8444"
+
+    networks:
+      - stackored-net
+
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kong.rule=Host(`kong-admin.stackored.loc`)"
+      - "traefik.http.routers.kong.service=kong"
+      - "traefik.http.routers.kong.entrypoints=websecure"
+      - "traefik.http.services.kong.loadbalancer.server.port=8001"
+      - "traefik.http.routers.kong.tls=true"
 
 
   tools:
@@ -396,6 +638,9 @@ volumes:
   stackored-mariadb-data:
 
 
+  stackored-postgres-data:
+
+
   stackored-mongo-data:
 
 
@@ -406,7 +651,14 @@ volumes:
   stackored-rabbitmq-logs:
 
 
+  stackored-activemq-data:
+  stackored-activemq-conf:
+
+
   stackored-elasticsearch-data:
+
+
+  stackored-meili-data:
 
 
   stackored-sonarqube-data:
@@ -421,4 +673,12 @@ volumes:
 
 
   stackored-sentry-postgres-data:
+
+
+  netdata-config:
+  netdata-lib:
+  netdata-cache:
+
+
+  stackored-tomcat-logs:
 

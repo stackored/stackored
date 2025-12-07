@@ -16,7 +16,7 @@ services:
 
     volumes:
       - stackored-mysql-data:/var/lib/mysql
-      - ./stackored/core/templates/database/mysql/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+      - ./core/templates/database/mysql/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
 
     command: >
       mysqld

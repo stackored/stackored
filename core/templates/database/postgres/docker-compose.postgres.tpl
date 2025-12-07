@@ -16,11 +16,6 @@ services:
 
     volumes:
       - stackored-postgres-data:/var/lib/postgresql/data/pgdata
-      - ./stackored/core/templates/database/postgres/postgres.conf:/etc/postgresql/postgresql.conf:ro
-
-    command: >
-      postgres
-      -c config_file=/etc/postgresql/postgresql.conf
 
     ports:
       - "{{ HOST_PORT_POSTGRES | default('5432') }}:5432"

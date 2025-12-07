@@ -9,9 +9,9 @@ services:
     restart: unless-stopped
 
     environment:
-      RABBITMQ_DEFAULT_USER: "{{ RABBITMQ_USER | default('stackored') }}"
-      RABBITMQ_DEFAULT_PASS: "{{ RABBITMQ_PASSWORD | default('stackored') }}"
-      RABBITMQ_DEFAULT_VHOST: "{{ RABBITMQ_VHOST | default('/') }}"
+      RABBITMQ_DEFAULT_USER: "{{ RABBITMQ_DEFAULT_USER }}"
+      RABBITMQ_DEFAULT_PASS: "{{ RABBITMQ_DEFAULT_PASS }}"
+      RABBITMQ_DEFAULT_VHOST: "/"
 
     volumes:
       - stackored-rabbitmq-data:/var/lib/rabbitmq
