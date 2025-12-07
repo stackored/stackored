@@ -50,13 +50,13 @@ class Generator
 
 		// Process conditionals
 		$content = preg_replace_callback(
-			'/\{\{ if ([A-Z0-9_]+) == \'([^\']+)\' \}\}(.*?)\{\{ endif \}\}/s',
+			'/\\{\\{ if ([A-Z0-9_]+) == \\'([^\\']+)\\' \\}\\}(.*?)\\{\\{ endif \\}\\}/s',
 			function ($matches) {
 				$key = $matches[1];
 				$value = $matches[2];
 				$content = $matches[3];
 
-				if (($this->env[$key] ?? '') === $value) {
+				if (isset($this->env[$key]) && $this->env[$key] === $value) {
 					return $content;
 				}
 				return '';
@@ -64,7 +64,7 @@ class Generator
 			$content
 		);
 
-		// Process variables
+		// Process template variables
 		$content = TemplateEngine::render($content, $this->env);
 
 		FileSystem::write($outputPath, $content);

@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
 
     volumes:
-      - ./webapps:/usr/local/tomcat/webapps
+      - ./core/templates/appserver/tomcat/webapps:/usr/local/tomcat/webapps
       - stackored-tomcat-logs:/usr/local/tomcat/logs
 
     ports:
