@@ -17,4 +17,4 @@ services:
       - "{{ HOST_PORT_KAFBAT | default('8080') }}:8080"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"

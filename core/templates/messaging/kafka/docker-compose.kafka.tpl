@@ -13,7 +13,7 @@ services:
     ports:
       - "2181:2181"
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
   kafka:
     image: confluentinc/cp-kafka:{{ KAFKA_VERSION }}
@@ -32,7 +32,7 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-kafka-data:

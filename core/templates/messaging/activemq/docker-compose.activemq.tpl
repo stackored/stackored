@@ -25,7 +25,7 @@ services:
       - stackored-activemq-conf:/opt/apache-activemq/conf
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-activemq-data:

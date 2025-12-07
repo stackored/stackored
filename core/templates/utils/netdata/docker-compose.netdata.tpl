@@ -28,7 +28,7 @@ services:
       - /etc/os-release:/host/etc/os-release:ro
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   netdata-config:

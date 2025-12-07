@@ -28,7 +28,7 @@ ports:
 - "{{ HOST_PORT_MYSQL | default('3306') }}:3306"
 
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-mysql-data:

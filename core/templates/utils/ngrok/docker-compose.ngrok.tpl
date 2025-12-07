@@ -22,4 +22,4 @@ services:
       - "{{ HOST_PORT_NGROK | default('4040') }}:4040"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"

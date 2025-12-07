@@ -22,7 +22,7 @@ services:
       - "{{ HOST_PORT_GRAFANA | default('3001') }}:3000"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     user: "{{ HOST_USER_ID | default('472') }}"
 

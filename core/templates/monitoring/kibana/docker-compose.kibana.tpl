@@ -20,7 +20,7 @@ services:
       - "{{ HOST_PORT_KIBANA | default('5601') }}:5601"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     depends_on:
       - elasticsearch

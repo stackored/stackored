@@ -24,7 +24,7 @@ services:
       - "{{ HOST_PORT_CASSANDRA_JMX | default('7199') }}:7199"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     healthcheck:
       test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]

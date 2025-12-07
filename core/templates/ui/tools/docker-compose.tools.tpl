@@ -17,4 +17,4 @@ services:
       PMA_ARBITRARY: 1
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"

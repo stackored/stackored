@@ -22,7 +22,7 @@ services:
       - "{{ HOST_PORT_RABBITMQ_MGMT | default('15672') }}:15672"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-rabbitmq-data:

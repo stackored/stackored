@@ -23,7 +23,7 @@ services:
       - "{{ HOST_PORT_PERCONA | default('3307') }}:3306"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-percona-data:

@@ -19,4 +19,4 @@ services:
       - "{{ HOST_PORT_MEMCACHED | default('11211') }}:11211"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"

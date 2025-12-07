@@ -9,7 +9,7 @@
       - ./projects/{{ PROJECT_NAME }}:/var/www/html
     
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
   {{ PROJECT_NAME }}-web:
     image: "nginx:alpine"
@@ -21,7 +21,7 @@
       - ./projects/{{ PROJECT_NAME }}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
     
     depends_on:
-      - {{ PROJECT_NAME }}-php
+      - "{{ PROJECT_NAME }}"-php

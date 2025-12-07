@@ -39,14 +39,14 @@ services:
       - sentry-postgres
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
   sentry-redis:
     image: redis:7
     container_name: "stackored-sentry-redis"
     restart: unless-stopped
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
   sentry-postgres:
     image: postgres:15
@@ -59,7 +59,7 @@ services:
     volumes:
       - stackored-sentry-postgres-data:/var/lib/postgresql/data
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-sentry-postgres-data:

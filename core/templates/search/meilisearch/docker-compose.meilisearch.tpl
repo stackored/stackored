@@ -20,7 +20,7 @@ services:
       - stackored-meili-data:/meili_data
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-meili-data:

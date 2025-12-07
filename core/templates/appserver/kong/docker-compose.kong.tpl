@@ -27,7 +27,7 @@ services:
       - "{{ HOST_PORT_KONG_ADMIN_SSL | default('8444') }}:8444"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     healthcheck:
       test: ["CMD", "kong", "health"]

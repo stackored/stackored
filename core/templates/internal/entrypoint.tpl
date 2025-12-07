@@ -6,7 +6,7 @@
 
 set -e
 
-echo ">>> [Stackored] Initializing container for service: {{ SERVICE_NAME }}"
+echo ">>> [Stackored] Initializing container for service: "{{ SERVICE_NAME }}""
 
 # ---------------------------------------------------------
 # 1) Load environment variables from generated config

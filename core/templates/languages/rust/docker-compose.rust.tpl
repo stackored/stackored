@@ -19,4 +19,4 @@ CARGO_HOME: /cargo
 command: "{{ RUST_COMMAND | default('tail -f /dev/null') }}"
 
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"

@@ -18,7 +18,7 @@ services:
       - "{{ HOST_PORT_REDIS | default('6379') }}:6379"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-redis-data:

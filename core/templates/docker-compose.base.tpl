@@ -26,7 +26,7 @@ volumes:
 - /var/run/docker.sock:/var/run/docker.sock:ro
 - stackored-letsencrypt:/letsencrypt
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"
 
 networks:
 {{ DOCKER_DEFAULT_NETWORK }}:

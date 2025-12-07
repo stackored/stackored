@@ -16,7 +16,7 @@ services:
       - "{{ HOST_PORT_TOMCAT | default('8080') }}:8080"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     environment:
       CATALINA_OPTS: "{{ TOMCAT_CATALINA_OPTS | default('-Xms512M -Xmx1024M') }}"

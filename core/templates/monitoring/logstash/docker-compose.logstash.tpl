@@ -22,7 +22,7 @@ services:
       - "{{ HOST_PORT_LOGSTASH_API | default('9600') }}:9600"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     depends_on:
       - elasticsearch

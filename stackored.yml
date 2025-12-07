@@ -33,6 +33,7 @@ services:
 
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./core/traefik/traefik.yml:/etc/traefik/traefik.yml:ro"
       - "./core/traefik/dynamic:/etc/traefik/dynamic:ro"
       - "./core/certs:/certs:ro"
 

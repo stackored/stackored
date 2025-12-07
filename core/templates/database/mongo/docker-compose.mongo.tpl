@@ -21,7 +21,7 @@ services:
       - "{{ HOST_PORT_MONGO | default('27017') }}:27017"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-mongo-data:

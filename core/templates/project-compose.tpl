@@ -20,7 +20,7 @@ labels:
 - "traefik.http.routers.{{ PROJECT_SLUG }}.rule=Host(`{{ PROJECT_DOMAIN }}`)"
 - "traefik.http.services.{{ PROJECT_SLUG }}.loadbalancer.server.port=9000"
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"
 
 networks:
 {{ DOCKER_DEFAULT_NETWORK }}:

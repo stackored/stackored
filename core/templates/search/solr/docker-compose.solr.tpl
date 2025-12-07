@@ -31,7 +31,7 @@ services:
       - "{{ HOST_PORT_SOLR | default('8983') }}:8983"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-solr-data:

@@ -16,4 +16,4 @@ volumes:
 command: "{{ PYTHON_COMMAND | default('tail -f /dev/null') }}"
 
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"

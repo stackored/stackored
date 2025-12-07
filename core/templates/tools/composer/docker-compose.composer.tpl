@@ -15,7 +15,7 @@ services:
       - stackored-composer-cache:/tmp
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     command: ["composer", "--version"]
 

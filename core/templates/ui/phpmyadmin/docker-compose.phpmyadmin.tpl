@@ -18,4 +18,4 @@ services:
       - "{{ HOST_PORT_PHPMYADMIN | default('8081') }}:80"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"

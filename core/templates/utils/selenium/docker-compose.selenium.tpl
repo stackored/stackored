@@ -20,4 +20,4 @@ services:
       SCREEN_DEPTH: "{{ SELENIUM_SCREEN_DEPTH | default('24') }}"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"

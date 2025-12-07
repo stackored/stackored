@@ -17,4 +17,4 @@ services:
       - "{{ HOST_PORT_BLACKFIRE | default('8707') }}:8707"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"

@@ -24,7 +24,7 @@ services:
       - "{{ HOST_PORT_COUCHBASE_CLIENT | default('11210') }}:11210"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-couchbase-data:

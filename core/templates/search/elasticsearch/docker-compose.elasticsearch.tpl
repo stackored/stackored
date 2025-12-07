@@ -17,9 +17,8 @@ services:
       - network.host=0.0.0.0
 
     ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+      memlock: -1
+      nofile: 65536
 
     volumes:
       - stackored-elasticsearch-data:/usr/share/elasticsearch/data
@@ -28,7 +27,7 @@ services:
       - "{{ HOST_PORT_ELASTICSEARCH | default('9200') }}:9200"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-elasticsearch-data:

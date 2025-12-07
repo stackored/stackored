@@ -20,7 +20,7 @@ services:
       - "{{ HOST_PORT_COUCHDB | default('5984') }}:5984"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]

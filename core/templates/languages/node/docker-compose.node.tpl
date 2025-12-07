@@ -18,7 +18,7 @@ services:
       - "{{ HOST_PORT_NODE | default('3000') }}:3000"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
     command: ["node", "--version"]
 

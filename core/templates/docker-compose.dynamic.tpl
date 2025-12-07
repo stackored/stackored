@@ -21,7 +21,7 @@ labels:
 - "traefik.http.routers.{{ project.slug }}.rule=Host(`{{ project.domain }}`)"
 - "traefik.http.services.{{ project.slug }}.loadbalancer.server.port=9000"
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"
 {% endfor %}
 
 {% if ENABLE_MYSQL == "true" %}
@@ -30,14 +30,14 @@ image: mysql:{{ MYSQL_VERSION }}
 environment:
 MYSQL_ROOT_PASSWORD: "root"
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"
 {% endif %}
 
 {% if ENABLE_REDIS == "true" %}
 redis:
 image: redis:{{ REDIS_VERSION }}
 networks:
-- {{ DOCKER_DEFAULT_NETWORK }}
+- "{{ DOCKER_DEFAULT_NETWORK }}"
 {% endif %}
 
 networks:

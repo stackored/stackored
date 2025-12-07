@@ -21,7 +21,7 @@ services:
       - "{{ HOST_PORT_POSTGRES | default('5432') }}:5432"
 
     networks:
-      - {{ DOCKER_DEFAULT_NETWORK }}
+      - "{{ DOCKER_DEFAULT_NETWORK }}"
 
 volumes:
   stackored-postgres-data:
