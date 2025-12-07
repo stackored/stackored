@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="c1032c8b-c999-409b-8414-c3b0f37684e9" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/php.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/stackored.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/install.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/lib/ComposeBuilder.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/lib/EnvLoader.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/lib/FileSystem.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/lib/Generator.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/lib/Logger.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/lib/ProjectLoader.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/lib/TemplateEngine.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/stackored" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/stackored-generate" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/support/doctor.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/cli/support/project-create.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/compose/base.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/network/network.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/cache/memcached/docker-compose.memcached.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/cache/redis/docker-compose.redis.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/cache/redis/redis.conf.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/database/mongo/docker-compose.mongo.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/database/mongo/mongo.conf.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/database/mysql/docker-compose.mysql.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/database/mysql/my.cnf.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/database/postgres/docker-compose.postgres.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/database/postgres/postgres.conf.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/docker-compose.base.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/docker-compose.dynamic.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/env.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/generator/generate-compose.php.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/generator/generate-project-config.php.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/generator/generate-routes.php.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/httpd/httpd-default.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/httpd/httpd-vhost.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/internal/entrypoint.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/internal/healthcheck.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/internal/supervisor.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/languages/golang/docker-compose.golang.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/languages/python/docker-compose.python.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/languages/ruby/docker-compose.ruby.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/languages/rust/docker-compose.rust.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/messaging/kafka/docker-compose.kafka.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/messaging/nats/docker-compose.nats.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/messaging/rabbitmq/docker-compose.rabbitmq.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/nginx/nginx-default.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/nginx/nginx-php-handler.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/nginx/nginx-upstream.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/nginx/nginx-vhost.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/php/Dockerfile.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/php/php-extensions.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/php/php-fpm.pool.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/php/php-xdebug.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/php/php.cli.ini.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/php/php.conf.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/php/php.ini.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/project-compose.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/qa/blackfire/docker-compose.blackfire.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/qa/sentry/docker-compose.sentry.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/qa/sonarqube/docker-compose.sonarqube.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/search/elasticsearch/docker-compose.elasticsearch.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/search/elasticsearch/elasticsearch.yml.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/search/meilisearch/docker-compose.meilisearch.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/search/solr/docker-compose.solr.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/stackored.yml.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/traefik/traefik-certificate.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/traefik/traefik-middleware.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/traefik/traefik-router.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/traefik/traefik-service.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/traefik/traefik.yml.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/ui/adminer/docker-compose.adminer.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/ui/phpmyadmin/docker-compose.phpmyadmin.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/utils/mailhog/docker-compose.mailhog.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/utils/netdata/docker-compose.netdata.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/utils/ngrok/docker-compose.ngrok.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/templates/utils/selenium/docker-compose.selenium.tpl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/traefik/dynamic/project1.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/traefik/dynamic/project2.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/core/traefik/traefik.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/projects/project1/stackored.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/projects/project2/.stackored/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/projects/project2/.stackored/docker-compose.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/projects/project2/.stackored/traefik.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/projects/project2/.stackored/vhost.conf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/projects/project2/stackored.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/elasticsearch/docker-compose.elasticsearch.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/mysql/docker-compose.mysql.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/rabbitmq/docker-compose.rabbitmq.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/services/redis/docker-compose.redis.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stackored.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings">
+    <execution />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;fahrettinaksoy&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/stackored/stackored.git&quot;,
+    &quot;accountId&quot;: &quot;8abe0eef-9da5-4874-a443-a1c83e521d26&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="36UHg5VtcRzUpo2L7BPHagPVlkp" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+    <option name="showMembers" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-a71380e98a7c-JavaScript-PS-252.28238.9" />
+        <option value="bundled-php-predefined-a98d8de5180a-58f58c5035b3-com.jetbrains.php.sharedIndexes-PS-252.28238.9" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="c1032c8b-c999-409b-8414-c3b0f37684e9" name="Changes" comment="" />
+      <created>1765054338284</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1765054338284</updated>
+      <workItem from="1765054339294" duration="19000" />
+      <workItem from="1765054447002" duration="3000" />
+      <workItem from="1765057260776" duration="137000" />
+      <workItem from="1765064387147" duration="3000" />
+      <workItem from="1765065698364" duration="2000" />
+    </task>
+    <servers />
+  </component>
+</project>

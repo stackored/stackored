@@ -1,0 +1,15 @@
+http:
+  routers:
+    project2-router:
+      rule: "Host(`project2.loc`)"
+      service: project1-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    project2-service:
+      loadBalancer:
+        servers:
+          - url: "http://project2-web:80"

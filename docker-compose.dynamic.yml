@@ -1,0 +1,369 @@
+services:
+
+  mysql:
+    image: "mysql:8.0"
+    container_name: "stackored-mysql"
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "stackored"
+      MYSQL_USER: "stackored"
+      MYSQL_PASSWORD: "stackored"
+
+    volumes:
+      - stackored-mysql-data:/var/lib/mysql
+      - ./stackored/core/templates/database/mysql/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+
+    command: >
+      mysqld
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --skip-character-set-client-handshake
+
+    ports:
+    - "3306:3306"
+
+    networks:
+    - stackored-net
+
+
+
+  mariadb:
+    image: "mariadb:10.6"
+    container_name: "stackored-mariadb"
+    restart: unless-stopped
+
+    environment:
+      MARIADB_ROOT_PASSWORD: "root"
+      MARIADB_DATABASE: "stackored"
+      MARIADB_USER: "stackored"
+      MARIADB_PASSWORD: "stackored"
+
+    volumes:
+      - stackored-mariadb-data:/var/lib/mysql
+      - ./stackored/core/templates/database/mariadb/my.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+
+    command: >
+      mariadbd
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+
+    ports:
+      - "3307:3306"
+
+    networks:
+      - stackored-net
+
+
+
+  mongo:
+    image: "mongo:5.0"
+    container_name: "stackored-mongo"
+    restart: unless-stopped
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "root"
+      MONGO_INITDB_ROOT_PASSWORD: "root"
+      MONGO_INITDB_DATABASE: "stackored"
+
+    volumes:
+      - stackored-mongo-data:/data/db
+      - ./stackored/core/templates/database/mongo/mongo.conf:/etc/mongo/mongo.conf:ro
+
+    ports:
+      - "27017:27017"
+
+    networks:
+      - stackored-net
+
+
+
+  redis:
+    image: "redis:7.0"
+    container_name: "stackored-redis"
+    restart: unless-stopped
+
+    command: ["redis-server", "/etc/redis/redis.conf"]
+
+    volumes:
+      - stackored-redis-data:/data
+      - ./stackored/core/templates/cache/redis/redis.conf:/etc/redis/redis.conf:ro
+
+    ports:
+      - "6379:6379"
+
+    networks:
+      - stackored-net
+
+
+
+  memcached:
+    image: "memcached:1.6"
+    container_name: "stackored-memcached"
+    restart: unless-stopped
+
+    command: >
+      memcached
+      -m 256
+      -c 1024
+      -t 4
+      {{ MEMCACHED_EXTRA_ARGS | default('') }}
+
+    ports:
+      - "11211:11211"
+
+    networks:
+      - stackored-net
+
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: "stackored-rabbitmq"
+    restart: unless-stopped
+
+    environment:
+      RABBITMQ_DEFAULT_USER: "stackored"
+      RABBITMQ_DEFAULT_PASS: "stackored"
+      RABBITMQ_DEFAULT_VHOST: "/"
+
+    volumes:
+      - stackored-rabbitmq-data:/var/lib/rabbitmq
+      - stackored-rabbitmq-logs:/var/log/rabbitmq
+
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+    networks:
+      - stackored-net
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.stackored.loc`)"
+      - "traefik.http.routers.rabbitmq.service=rabbitmq"
+      - "traefik.http.routers.rabbitmq.entrypoints=web"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
+
+
+  elasticsearch:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:8.11.3"
+    container_name: "stackored-elasticsearch"
+    restart: unless-stopped
+
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - cluster.name=stackored-es
+      - network.host=0.0.0.0
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+    volumes:
+      - stackored-elasticsearch-data:/usr/share/elasticsearch/data
+
+    ports:
+      - "9200:9200"
+
+    networks:
+      - stackored-net
+
+
+
+  sonarqube:
+    image: "sonarqube:latest"
+    container_name: "stackored-sonarqube"
+    restart: unless-stopped
+
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+      SONAR_SEARCH_JAVAADDITIONALOPTS: "-Dnode.store.allow_mmap=false"
+      SONAR_WEB_JAVAOPTS: "-Xms512m -Xmx512m"
+      SONARQUBE_JDBC_URL: "jdbc:postgresql://postgres/sonarqube"
+      SONARQUBE_JDBC_USERNAME: "sonar"
+      SONARQUBE_JDBC_PASSWORD: "sonar"
+
+    ports:
+      - "9000:9000"
+
+    volumes:
+      - stackored-sonarqube-data:/opt/sonarqube/data
+      - stackored-sonarqube-extensions:/opt/sonarqube/extensions
+
+    networks:
+      - stackored-net
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarqube.rule=Host(`sonarqube.stackored.loc`)"
+      - "traefik.http.routers.sonarqube.service=sonarqube"
+      - "traefik.http.routers.sonarqube.entrypoints=web"
+      - "traefik.http.services.sonarqube.loadbalancer.server.port=9000"
+
+
+  grafana:
+    image: "grafana/grafana:latest"
+    container_name: "stackored-grafana"
+    restart: unless-stopped
+
+    environment:
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "stackored"
+      GF_INSTALL_PLUGINS: "{{ GRAFANA_INSTALL_PLUGINS | default('') }}"
+      GF_SERVER_ROOT_URL: "http://localhost:3001"
+
+    volumes:
+      - stackored-grafana-data:/var/lib/grafana
+      - stackored-grafana-config:/etc/grafana
+
+    ports:
+      - "3001:3000"
+
+    networks:
+      - stackored-net
+
+    user: "1000"
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.stackored.loc`)"
+      - "traefik.http.routers.grafana.service=grafana"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+
+  kibana:
+    image: "kibana:8.11.3"
+    container_name: "stackored-kibana"
+    restart: unless-stopped
+
+    environment:
+      ELASTICSEARCH_HOSTS: "http://stackored-elasticsearch:9200"
+      SERVER_NAME: "stackored-kibana"
+      SERVER_HOST: "0.0.0.0"
+
+    volumes:
+      - stackored-kibana-data:/usr/share/kibana/data
+
+    ports:
+      - "5601:5601"
+
+    networks:
+      - stackored-net
+
+    depends_on:
+      - elasticsearch
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kibana.rule=Host(`kibana.stackored.loc`)"
+      - "traefik.http.routers.kibana.service=kibana"
+      - "traefik.http.routers.kibana.entrypoints=web"
+      - "traefik.http.services.kibana.loadbalancer.server.port=5601"
+
+
+  tools:
+    build:
+      context: ./core/images/tools
+      dockerfile: Dockerfile
+    container_name: "stackored-tools"
+    restart: unless-stopped
+
+    environment:
+      # Pass necessary environment variables for tools configuration
+      PMA_HOST: stackored-mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+
+    networks:
+      - stackored-net
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.tools.loadbalancer.server.port=80"
+      - "traefik.http.routers.adminer.rule=Host(`adminer.stackored.loc`)"
+      - "traefik.http.routers.adminer.service=tools"
+      - "traefik.http.routers.adminer.entrypoints=web"
+      - "traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.stackored.loc`)"
+      - "traefik.http.routers.phpmyadmin.service=tools"
+      - "traefik.http.routers.phpmyadmin.entrypoints=web"
+      - "traefik.http.routers.phppgadmin.rule=Host(`phppgadmin.stackored.loc`)"
+      - "traefik.http.routers.phppgadmin.service=tools"
+      - "traefik.http.routers.phppgadmin.entrypoints=web"
+      - "traefik.http.routers.phpredmin.rule=Host(`phpredmin.stackored.loc`)"
+      - "traefik.http.routers.phpredmin.service=tools"
+      - "traefik.http.routers.phpredmin.entrypoints=web"
+      - "traefik.http.routers.phpmemcachedadmin.rule=Host(`phpmemcachedadmin.stackored.loc`)"
+      - "traefik.http.routers.phpmemcachedadmin.service=tools"
+      - "traefik.http.routers.phpmemcachedadmin.entrypoints=web"
+      - "traefik.http.routers.opcache.rule=Host(`opcache.stackored.loc`)"
+      - "traefik.http.routers.opcache.service=tools"
+      - "traefik.http.routers.opcache.entrypoints=web"
+
+
+  mailhog:
+    image: "mailhog/mailhog:latest"
+    container_name: "stackored-mailhog"
+    restart: unless-stopped
+
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+    networks:
+      - stackored-net
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailhog.rule=Host(`mailhog.stackored.loc`)"
+      - "traefik.http.routers.mailhog.service=mailhog"
+      - "traefik.http.routers.mailhog.entrypoints=web"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
+
+
+volumes:
+
+  stackored-mysql-data:
+
+
+  stackored-mariadb-data:
+
+
+  stackored-mongo-data:
+
+
+  stackored-redis-data:
+
+
+  stackored-rabbitmq-data:
+  stackored-rabbitmq-logs:
+
+
+  stackored-elasticsearch-data:
+
+
+  stackored-sonarqube-data:
+  stackored-sonarqube-extensions:
+
+
+  stackored-grafana-data:
+  stackored-grafana-config:
+
+
+  stackored-kibana-data:
+

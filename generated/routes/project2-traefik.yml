@@ -1,0 +1,11 @@
+http:
+  routers:
+    project2-router:
+      rule: "Host(`project2.loc`)"
+      service: project2-service
+
+  services:
+    project2-service:
+      loadBalancer:
+        servers:
+          - url: "http://project2-php:9000"
