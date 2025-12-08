@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-STACKORED_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Resolve symlink to get actual script path
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+STACKORED_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/../.." && pwd)"
 
 COMMAND=$1
 shift

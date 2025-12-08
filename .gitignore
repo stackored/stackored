@@ -1,5 +1,2 @@
-core/certs/*.key
-core/certs/*.crt
-core/certs/*.srl
-stackored/
-core/config/
+docker-compose.dynamic.yml
+docker-compose.projects.yml

@@ -1,92 +1,123 @@
-#!/usr/bin/env bash
+#!/bin/bash
+set -eo pipefail
 
-###################################################################
-# STACKORED GENERATOR (SHELL VERSION)
-# PHP olmadan Docker Compose dosyalarını oluşturur
-###################################################################
-
-set -e
+# Stackored Generator - Pure Bash Implementation
+# Compatible with Bash 3.x+ (macOS default)
+# No PHP dependency required!
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED='\033[0;31m'
+NC='\033[0m'
 
-echo -e "${BLUE}[INFO]${NC} Stackored Generator Starting..."
+log_info() { echo -e "${BLUE}[INFO]${NC} $1" >&2; }
+log_success() { echo -e "${GREEN}[OK]${NC} $1" >&2; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
-###################################################################
-# .env DOSYASINI YÜKLE
-###################################################################
-if [ ! -f "$ROOT_DIR/.env" ]; then
-    echo "[ERROR] .env file not found!"
-    exit 1
-fi
-
-echo -e "${BLUE}[INFO]${NC} Loading environment variables..."
-set -a
-source "$ROOT_DIR/.env"
-set +a
-
-###################################################################
-# HELPER FUNCTIONS
-###################################################################
-
-# Check if module is enabled
-is_enabled() {
-    local var_name=$1
-    local var_value="${!var_name}"
-    local lower_value=$(echo "$var_value" | tr '[:upper:]' '[:lower:]')
-    [[ "$lower_value" == "true" ]]
+# Load .env
+load_env() {
+    log_info "Loading environment..."
+    [ ! -f "$ROOT_DIR/.env" ] && { log_error ".env not found"; exit 1; }
+    set -a
+    source "$ROOT_DIR/.env"
+    set +a
 }
 
-# Replace template variables
-render_template() {
+# Process template - convert to envsubst syntax and process
+process_template() {
     local template_file=$1
-    local output=""
+    [ ! -f "$template_file" ] && return 1
     
-    if [ -f "$template_file" ]; then
-        output=$(cat "$template_file")
+    # Convert {{ VAR }} to ${VAR} and {{ VAR | default('x') }} to ${VAR:-x}
+    # Use [[:space:]]* for BSD sed compatibility (macOS)
+    # Then use envsubst for actual replacement
+    sed -e 's/{{[[:space:]]*\([A-Z0-9_]*\)[[:space:]]*}}/${\1}/g' \
+        -e "s/{{[[:space:]]*\([A-Z0-9_]*\)[[:space:]]*|[[:space:]]*default('\([^']*\)')[[:space:]]*}}/\${\1:-\2}/g" \
+        -e "s/{{[[:space:]]*\([A-Z0-9_]*\)[[:space:]]*|[[:space:]]*default(\"\([^\"]*\)\")[[:space:]]*}}/\${\1:-\2}/g" \
+        "$template_file" | envsubst
+}
+
+# Include module if enabled
+include_module() {
+    local enable_var=$1
+    local template_path=$2
+    local full_path="$ROOT_DIR/core/templates/$template_path"
+    
+    # Check if enabled
+    eval "local enabled=\${${enable_var}:-false}"
+    
+    if [ "$enabled" = "true" ] && [ -f "$full_path" ]; then
+        log_info "Including: $enable_var"
         
-        # Replace common variables
-        output="${output//\{\{ DOCKER_DEFAULT_NETWORK \}\}/$DOCKER_DEFAULT_NETWORK}"
-        output="${output//\{\{ MYSQL_VERSION \}\}/$MYSQL_VERSION}"
-        output="${output//\{\{ REDIS_VERSION \}\}/$REDIS_VERSION}"
-        output="${output//\{\{ POSTGRES_VERSION \}\}/$POSTGRES_VERSION}"
-        output="${output//\{\{ MONGO_VERSION \}\}/$MONGO_VERSION}"
-        output="${output//\{\{ MEMCACHED_VERSION \}\}/$MEMCACHED_VERSION}"
-        output="${output//\{\{ ELASTICSEARCH_VERSION \}\}/$ELASTICSEARCH_VERSION}"
-        output="${output//\{\{ RABBITMQ_VERSION \}\}/$RABBITMQ_VERSION}"
-        output="${output//\{\{ KAFKA_VERSION \}\}/$KAFKA_VERSION}"
-        output="${output//\{\{ NATS_VERSION \}\}/$NATS_VERSION}"
-        output="${output//\{\{ MAILHOG_VERSION \}\}/$MAILHOG_VERSION}"
-        output="${output//\{\{ TRAEFIK_EMAIL \}\}/$TRAEFIK_EMAIL}"
+        # Process template and extract only service definitions
+        # Skip: comments (#), "services:" line, "volumes:" section
+        # Fix: indentation for ports/networks and their list items
+        process_template "$full_path" | \
+            awk '
+                /^#/ { next }                      # Skip ALL comment lines
+                /^services:/ { next }              # Skip services header  
+                /^volumes:/ { in_volumes=1 }       # Mark volumes section
+                in_volumes { next }                # Skip volumes section
+                /^[[:space:]]*$/ && !started { next }  # Skip leading blank lines
+                
+                # Track ports/networks sections
+                /^ports:/ { 
+                    print "    ports:"
+                    in_ports=1
+                    next
+                }
+                /^networks:/ { 
+                    print "    networks:"
+                    in_networks=1
+                    next
+                }
+                
+                # Reset section tracking when we hit a new top-level key
+                /^[a-z_]+:/ && !/^  / { 
+                    in_ports=0
+                    in_networks=0
+                }
+                
+                # Indent list items in ports/networks sections
+                in_ports && /^- / { 
+                    sub(/^- /, "      - ")
+                    print
+                    next
+                }
+                in_networks && /^- / { 
+                    sub(/^- /, "      - ")
+                    print
+                    next
+                }
+                
+                { started=1; print }               # Print everything else
+            '
         
-        echo "$output"
+        echo ""
     fi
 }
 
-###################################################################
-# CREATE BASE stackored.yml
-###################################################################
-echo -e "${BLUE}[INFO]${NC} Generating stackored.yml (base compose)..."
-
-cat > "$ROOT_DIR/stackored.yml" << 'EOFBASE'
-version: "3.9"
-
-###################################################################
-# STACKORED - BASE COMPOSE (Traefik & Network)
-# Auto-generated by Stackored Generator
-###################################################################
-
+# Generate base stackored.yml
+generate_base_compose() {
+    log_info "Generating stackored.yml (base compose)..."
+    
+    local output="$ROOT_DIR/stackored.yml"
+    local template="$ROOT_DIR/core/compose/base.yml"
+    
+    if [ -f "$template" ]; then
+        process_template "$template" > "$output"
+    else
+        # Fallback: create minimal base compose
+        cat > "$output" <<'EOF'
 services:
-
   traefik:
     image: traefik:latest
     container_name: stackored-traefik
     restart: unless-stopped
-    
     command:
       - "--api.dashboard=true"
       - "--api.insecure=true"
@@ -96,16 +127,14 @@ services:
       - "--providers.file.watch=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-    
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Dashboard
-    
+      - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./core/traefik/dynamic:/etc/traefik/dynamic:ro"
-    
+      - "./core/certs:/certs:ro"
     networks:
       - stackored-net
 
@@ -113,340 +142,392 @@ networks:
   stackored-net:
     name: stackored-net
     driver: bridge
-    driver_opts:
-      com.docker.network.bridge.enable_icc: "true"
-      com.docker.network.bridge.enable_ip_masquerade: "true"
-    ipam:
-      driver: default
-      config:
-        - subnet: "172.30.0.0/16"
-          gateway: "172.30.0.1"
+EOF
+    fi
+    
+    log_success "Generated stackored.yml"
+}
 
-EOFBASE
+# Generate docker-compose.dynamic.yml
+generate_dynamic_compose() {
+    log_info "Generating docker-compose.dynamic.yml..."
+    
+    local output="$ROOT_DIR/docker-compose.dynamic.yml"
+    echo "services:" > "$output"
+    echo "" >> "$output"
+    
+    # Databases
+    include_module "MYSQL_ENABLE" "database/mysql/docker-compose.mysql.tpl" >> "$output"
+    include_module "MARIADB_ENABLE" "database/mariadb/docker-compose.mariadb.tpl" >> "$output"
+    include_module "POSTGRES_ENABLE" "database/postgres/docker-compose.postgres.tpl" >> "$output"
+    include_module "MONGO_ENABLE" "database/mongo/docker-compose.mongo.tpl" >> "$output"
+    include_module "CASSANDRA_ENABLE" "database/cassandra/docker-compose.cassandra.tpl" >> "$output"
+    include_module "PERCONA_ENABLE" "database/percona/docker-compose.percona.tpl" >> "$output"
+    include_module "COUCHDB_ENABLE" "database/couchdb/docker-compose.couchdb.tpl" >> "$output"
+    include_module "COUCHBASE_ENABLE" "database/couchbase/docker-compose.couchbase.tpl" >> "$output"
+    
+    # Caching
+    include_module "REDIS_ENABLE" "cache/redis/docker-compose.redis.tpl" >> "$output"
+    include_module "MEMCACHED_ENABLE" "cache/memcached/docker-compose.memcached.tpl" >> "$output"
+    
+    # Message Queues
+    include_module "RABBITMQ_ENABLE" "messaging/rabbitmq/docker-compose.rabbitmq.tpl" >> "$output"
+    include_module "NATS_ENABLE" "messaging/nats/docker-compose.nats.tpl" >> "$output"
+    include_module "KAFKA_ENABLE" "messaging/kafka/docker-compose.kafka.tpl" >> "$output"
+    include_module "KAFBAT_ENABLE" "messaging/kafbat/docker-compose.kafbat.tpl" >> "$output"
+    include_module "ACTIVEMQ_ENABLE" "messaging/activemq/docker-compose.activemq.tpl" >> "$output"
+    
+    # Search
+    include_module "ELASTICSEARCH_ENABLE" "search/elasticsearch/docker-compose.elasticsearch.tpl" >> "$output"
+    include_module "MEILISEARCH_ENABLE" "search/meilisearch/docker-compose.meilisearch.tpl" >> "$output"
+    include_module "SOLR_ENABLE" "search/solr/docker-compose.solr.tpl" >> "$output"
+    
+    # Monitoring
+    include_module "KIBANA_ENABLE" "monitoring/kibana/docker-compose.kibana.tpl" >> "$output"
+    include_module "GRAFANA_ENABLE" "monitoring/grafana/docker-compose.grafana.tpl" >> "$output"
+    include_module "LOGSTASH_ENABLE" "monitoring/logstash/docker-compose.logstash.tpl" >> "$output"
+    include_module "NETDATA_ENABLE" "utils/netdata/docker-compose.netdata.tpl" >> "$output"
+    
+    # QA
+    include_module "SONARQUBE_ENABLE" "qa/sonarqube/docker-compose.sonarqube.tpl" >> "$output"
+    include_module "SENTRY_ENABLE" "qa/sentry/docker-compose.sentry.tpl" >> "$output"
+    include_module "BLACKFIRE_ENABLE" "qa/blackfire/docker-compose.blackfire.tpl" >> "$output"
+    
+    # App Servers
+    include_module "TOMCAT_ENABLE" "appserver/tomcat/docker-compose.tomcat.tpl" >> "$output"
+    include_module "KONG_ENABLE" "appserver/kong/docker-compose.kong.tpl" >> "$output"
+    
+    # Tools
+    include_module "MAILHOG_ENABLE" "utils/mailhog/docker-compose.mailhog.tpl" >> "$output"
+    include_module "COMPOSER_ENABLE" "tools/composer/docker-compose.composer.tpl" >> "$output"
+    include_module "NGROK_ENABLE" "utils/ngrok/docker-compose.ngrok.tpl" >> "$output"
+    include_module "SELENIUM_ENABLE" "utils/selenium/docker-compose.selenium.tpl" >> "$output"
+    include_module "TOOLS_CONTAINER_ENABLE" "ui/tools/docker-compose.tools.tpl" >> "$output"
+    
+    # Add volumes section
+    echo "" >> "$output"
+    echo "volumes:" >> "$output"
+    
+    # Extract volume names to temp file
+    local volumes_tmp="$ROOT_DIR/.volumes.tmp"
+    > "$volumes_tmp"  # Clear temp file
+    
+    # Use find instead of glob for Bash 3.x compatibility
+    find "$ROOT_DIR/core/templates" -name "*.tpl" -type f | while read -r tpl; do
+        # Extract volume names
+        awk '/^volumes:/,0 {
+            if (/^  [a-z]/) {
+                gsub(/:.*/, "")
+                gsub(/^  /, "")
+                if (length($0) > 0) print "  " $0 ": {}"
+            }
+        }' "$tpl" >> "$volumes_tmp" 2>/dev/null || true
+    done
+    
+    # Sort and append unique volumes
+    sort -u "$volumes_tmp" >> "$output"
+    rm -f "$volumes_tmp"
+    
+    log_success "Generated docker-compose.dynamic.yml"
+}
 
-###################################################################
-# CREATE DYNAMIC docker-compose.dynamic.yml
-###################################################################
-echo -e "${BLUE}[INFO]${NC} Generating docker-compose.dynamic.yml..."
+# Generate Traefik routes
+generate_traefik_routes() {
+    log_info "Generating traefik routes..."
+    
+    mkdir -p "$ROOT_DIR/core/traefik/dynamic"
+    local output="$ROOT_DIR/core/traefik/dynamic/routes.yml"
+    mkdir -p "$ROOT_DIR/core/traefik"
+    
+    # Start with routers section
+    cat > "$output" <<EOF
+http:
+  routers:
+EOF
+    
+    # Add all routers
+    add_router_if_enabled "RABBITMQ_ENABLE" "rabbitmq" "RABBITMQ_URL" >> "$output"
+    add_router_if_enabled "MAILHOG_ENABLE" "mailhog" "MAILHOG_URL" >> "$output"
+    add_router_if_enabled "KIBANA_ENABLE" "kibana" "KIBANA_URL" >> "$output"
+    add_router_if_enabled "GRAFANA_ENABLE" "grafana" "GRAFANA_URL" >> "$output"
+    add_router_if_enabled "SONARQUBE_ENABLE" "sonarqube" "SONARQUBE_URL" >> "$output"
+    add_router_if_enabled "SENTRY_ENABLE" "sentry" "SENTRY_URL" >> "$output"
+    add_router_if_enabled "MEILISEARCH_ENABLE" "meilisearch" "MEILISEARCH_URL" >> "$output"
+    add_router_if_enabled "TOMCAT_ENABLE" "tomcat" "TOMCAT_URL" >> "$output"
+    add_router_if_enabled "KONG_ENABLE" "kong" "KONG_ADMIN_URL" >> "$output"
+    add_router_if_enabled "NETDATA_ENABLE" "netdata" "NETDATA_URL" >> "$output"
+    add_router_if_enabled "KAFBAT_ENABLE" "kafbat-ui" "KAFBAT_URL" >> "$output"
+    add_router_if_enabled "ACTIVEMQ_ENABLE" "activemq" "ACTIVEMQ_URL" >> "$output"
+    
+    # Tools container admin tools (path-based routing)
+    if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
+        add_tools_router_if_enabled "phpmyadmin" "PHPMYADMIN_URL" >> "$output"
+        add_tools_router_if_enabled "adminer" "ADMINER_URL" >> "$output"
+        add_tools_router_if_enabled "phppgadmin" "PHPPGADMIN_URL" >> "$output"
+        add_tools_router_if_enabled "phpmemcachedadmin" "PHPMEMCACHEDADMIN_URL" >> "$output"
+        add_tools_router_if_enabled "phpmongo" "PHPMONGO_URL" >> "$output"
+        add_tools_router_if_enabled "opcache" "OPCACHE_URL" >> "$output"
+    fi
+    
+    # Add services section
+    cat >> "$output" <<EOF
 
-cat > "$ROOT_DIR/docker-compose.dynamic.yml" << EOFDYNAMIC
-version: "3.9"
+  services:
+EOF
+    
+    # Add all services
+    add_service_if_enabled "RABBITMQ_ENABLE" "rabbitmq" "15672" >> "$output"
+    add_service_if_enabled "MAILHOG_ENABLE" "mailhog" "8025" >> "$output"
+    add_service_if_enabled "KIBANA_ENABLE" "kibana" "5601" >> "$output"
+    add_service_if_enabled "GRAFANA_ENABLE" "grafana" "3000" >> "$output"
+    add_service_if_enabled "SONARQUBE_ENABLE" "sonarqube" "9000" >> "$output"
+    add_service_if_enabled "SENTRY_ENABLE" "sentry" "9000" >> "$output"
+    add_service_if_enabled "MEILISEARCH_ENABLE" "meilisearch" "7700" >> "$output"
+    add_service_if_enabled "TOMCAT_ENABLE" "tomcat" "8080" >> "$output"
+    add_service_if_enabled "KONG_ENABLE" "kong" "8001" >> "$output"
+    add_service_if_enabled "NETDATA_ENABLE" "netdata" "19999" >> "$output"
+    add_service_if_enabled "KAFBAT_ENABLE" "kafbat-ui" "8080" >> "$output"
+    add_service_if_enabled "ACTIVEMQ_ENABLE" "activemq" "8161" >> "$output"
+    
+    # Tools container services (one service per tool with path)
+    if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
+        for tool in phpmyadmin adminer phppgadmin phpmemcachedadmin phpmongo opcache; do
+            cat >> "$output" <<EOF
+    tools-${tool}:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tools:80"
+EOF
+        done
+    fi
+    
+    # Add middlewares section for path rewriting
+    if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
+        cat >> "$output" <<EOF
 
-###################################################################
-# STACKORED - DYNAMIC COMPOSE
-# Auto-generated based on enabled modules in .env
-###################################################################
+  middlewares:
+EOF
+        for tool in phpmyadmin adminer phppgadmin phpmemcachedadmin phpmongo opcache; do
+            cat >> "$output" <<EOF
+    ${tool}-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/${tool}"
+EOF
+        done
+    fi
+    
+    log_success "Generated traefik routes"
+}
 
-services:
+# Add Traefik router if service enabled
+add_router_if_enabled() {
+    local enable_var=$1
+    local service=$2
+    local url_var=$3
+    
+    eval "local enabled=\${${enable_var}:-false}"
+    eval "local url=\${${url_var}:-$service}"
+    
+    if [ "$enabled" = "true" ]; then
+        cat <<EOF
+    ${service}:
+      rule: "Host(\`${url}.${DEFAULT_TLD_SUFFIX}\`)"
+      entryPoints:
+        - websecure
+      service: ${service}
+      tls: {}
+EOF
+    fi
+}
 
-EOFDYNAMIC
+# Add Traefik router for tools container with path rewrite
+add_tools_router_if_enabled() {
+    local tool_name=$1
+    local url_var=$2
+    
+    eval "local url=\${${url_var}:-$tool_name}"
+    
+    if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
+        cat <<EOF
+    ${tool_name}:
+      rule: "Host(\`${url}.${DEFAULT_TLD_SUFFIX}\`)"
+      entryPoints:
+        - websecure
+      service: tools-${tool_name}
+      middlewares:
+        - ${tool_name}-stripprefix
+      tls: {}
+EOF
+    fi
+}
 
-###################################################################
-# SCAN AND ADD PROJECTS
-###################################################################
-echo -e "${BLUE}[INFO]${NC} Scanning projects..."
+# Add Traefik service if enabled
+add_service_if_enabled() {
+    local enable_var=$1
+    local service=$2
+    local port=$3
+    
+    eval "local enabled=\${${enable_var}:-false}"
+    
+    if [ "$enabled" = "true" ]; then
+        cat <<EOF
+    ${service}:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-${service}:${port}"
+EOF
+    fi
+}
 
-PROJECTS_DIR="$ROOT_DIR/projects"
-if [ -d "$PROJECTS_DIR" ]; then
-    for project_dir in "$PROJECTS_DIR"/*; do
-        if [ -d "$project_dir" ]; then
-            project_name=$(basename "$project_dir")
-            config_file="$project_dir/stackored.json"
-            
-            if [ -f "$config_file" ]; then
-                echo -e "${BLUE}[INFO]${NC} Adding project: $project_name"
-                
-                # Read JSON config using grep and sed (simple parsing)
-                domain=$(grep -o '"domain"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | sed 's/.*"\([^"]*\)".*/\1/')
-                php_version=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | sed 's/.*"\([^"]*\)".*/\1/' | head -1)
-                webserver=$(grep -o '"webserver"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | sed 's/.*"\([^"]*\)".*/\1/')
-                doc_root=$(grep -o '"document_root"[[:space:]]*:[[:space:]]*"[^"]*"' "$config_file" | sed 's/.*"\([^"]*\)".*/\1/')
-                
-                # Defaults
-                [ -z "$domain" ] && domain="${project_name}.${TLD_SUFFIX}"
-                [ -z "$php_version" ] && php_version="$DEFAULT_PHP_VERSION"
-                [ -z "$webserver" ] && webserver="$DEFAULT_WEBSERVER"
-                [ -z "$doc_root" ] && doc_root="$DEFAULT_DOCUMENT_ROOT"
-                
-                # Add PHP-FPM container
-                cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
+# Generate Traefik config
+generate_traefik_config() {
+    log_info "Generating traefik config..."
+    
+    local ssl_enabled="${TRAEFIK_ENABLE_SSL:-false}"
+    local redirect_https="${TRAEFIK_REDIRECT_TO_HTTPS:-false}"
+    local output="$ROOT_DIR/core/traefik/traefik.yml"
+    
+    mkdir -p "$ROOT_DIR/core/traefik"
+    
+    cat > "$output" <<EOF
+api:
+  dashboard: true
+  insecure: true
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: ${DOCKER_DEFAULT_NETWORK:-stackored-net}
+
+entryPoints:
+  web:
+    address: ":80"
+EOF
+    
+    if [ "$ssl_enabled" = "true" ]; then
+        if [ "$redirect_https" = "true" ]; then
+            cat >> "$output" <<EOF
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+EOF
+        fi
+        
+        cat >> "$output" <<EOF
+  websecure:
+    address: ":443"
+    http:
+      tls: {}
+EOF
+    fi
+    
+    log_success "Generated traefik config"
+}
+
+# Generate project containers
+generate_projects() {
+    log_info "Generating project containers..."
+    
+    local output="$ROOT_DIR/docker-compose.projects.yml"
+    local projects_dir="$ROOT_DIR/projects"
+    
+    # Start with empty services
+    echo "services:" > "$output"
+    echo "" >> "$output"
+    
+    # Check if projects directory exists
+    if [ ! -d "$projects_dir" ]; then
+        log_info "No projects directory found"
+        return
+    fi
+    
+    # Process each project
+    for project_path in "$projects_dir"/*; do
+        [ ! -d "$project_path" ] && continue
+        
+        local project_name=$(basename "$project_path")
+        local project_json="$project_path/stackored.json"
+        
+        # Skip if no stackored.json
+        [ ! -f "$project_json" ] && continue
+        
+        log_info "Processing project: $project_name"
+        
+        # Parse JSON - extract values correctly
+        local php_version=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$project_json" | head -1 | cut -d'"' -f4)
+        local web_server=$(grep -o '"webserver"[[:space:]]*:[[:space:]]*"[^"]*"' "$project_json" | cut -d'"' -f4)
+        local project_domain=$(grep -o '"domain"[[:space:]]*:[[:space:]]*"[^"]*"' "$project_json" | cut -d'"' -f4)
+        
+        # Default to enabled if no field (backward compat)
+        local project_enabled="true"
+        
+        # Skip if disabled
+        [ "$project_enabled" != "true" ] && continue
+        
+        # Generate PHP container
+        cat >> "$output" <<EOF
   ${project_name}-php:
-    image: php:${php_version}-fpm-alpine
-    container_name: stackored-${project_name}-php
+    image: "php:${php_version:-8.2}-fpm"
+    container_name: "${project_name}-php"
     restart: unless-stopped
+    
     volumes:
-      - ./projects/${project_name}:/var/www/html
-    working_dir: /var/www/html
+      - ${project_path}:/var/www/html
+    
     networks:
-      - stackored-net
+      - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
 
 EOF
-
-                # Add Nginx container
-                cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
+        
+        # Generate web server container
+        if [ "$web_server" = "nginx" ]; then
+            cat >> "$output" <<EOF
   ${project_name}-web:
-    image: nginx:alpine
-    container_name: stackored-${project_name}-web
+    image: "nginx:alpine"
+    container_name: "${project_name}-web"
     restart: unless-stopped
+    
     volumes:
-      - ./projects/${project_name}:/var/www/html
-      - ./projects/${project_name}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - ${project_name}-php
+      - ${project_path}:/var/www/html
+      - ${project_path}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    
     networks:
-      - stackored-net
+      - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
+    
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.${project_name}.rule=Host(\`${domain}\`)"
-      - "traefik.http.routers.${project_name}.entrypoints=web"
+      - "traefik.http.routers.${project_name}.rule=Host(\`${project_domain}\`)"
+      - "traefik.http.routers.${project_name}.entrypoints=websecure"
+      - "traefik.http.routers.${project_name}.tls=true"
       - "traefik.http.services.${project_name}.loadbalancer.server.port=80"
+    
+    depends_on:
+      - ${project_name}-php
 
 EOF
-                
-                # Create nginx.conf if not exists
-                nginx_conf="$project_dir/nginx.conf"
-                if [ ! -f "$nginx_conf" ]; then
-                    cat > "$nginx_conf" << 'NGINX_EOF'
-server {
-    listen 80;
-    server_name _;
-    root /var/www/html/public;
-    index index.php index.html;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass stackored-PROJECT_NAME-php:9000;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-}
-NGINX_EOF
-                    # Replace PROJECT_NAME placeholder
-                    sed -i '' "s/PROJECT_NAME/${project_name}/g" "$nginx_conf"
-                fi
-            fi
         fi
     done
-fi
-
-###################################################################
-# ADD ENABLED SERVICES
-###################################################################
-
-# MySQL
-if is_enabled "ENABLE_MYSQL"; then
-    echo -e "${BLUE}[INFO]${NC} Adding MySQL ${MYSQL_VERSION}..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  mysql:
-    image: mysql:${MYSQL_VERSION}
-    container_name: stackored-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: stackored
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-# Redis
-if is_enabled "ENABLE_REDIS"; then
-    echo -e "${BLUE}[INFO]${NC} Adding Redis ${REDIS_VERSION}..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  redis:
-    image: redis:${REDIS_VERSION}-alpine
-    container_name: stackored-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-# PostgreSQL
-if is_enabled "ENABLE_POSTGRES"; then
-    echo -e "${BLUE}[INFO]${NC} Adding PostgreSQL ${POSTGRES_VERSION}..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  postgres:
-    image: postgres:${POSTGRES_VERSION}-alpine
-    container_name: stackored-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: stackored
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-# MongoDB
-if is_enabled "ENABLE_MONGO"; then
-    echo -e "${BLUE}[INFO]${NC} Adding MongoDB ${MONGO_VERSION}..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  mongo:
-    image: mongo:${MONGO_VERSION}
-    container_name: stackored-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-# Memcached
-if is_enabled "ENABLE_MEMCACHED"; then
-    echo -e "${BLUE}[INFO]${NC} Adding Memcached ${MEMCACHED_VERSION}..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  memcached:
-    image: memcached:${MEMCACHED_VERSION}-alpine
-    container_name: stackored-memcached
-    restart: unless-stopped
-    ports:
-      - "11211:11211"
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-# RabbitMQ
-if is_enabled "ENABLE_RABBITMQ"; then
-    echo -e "${BLUE}[INFO]${NC} Adding RabbitMQ ${RABBITMQ_VERSION}..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  rabbitmq:
-    image: rabbitmq:${RABBITMQ_VERSION}-management-alpine
-    container_name: stackored-rabbitmq
-    restart: unless-stopped
-    ports:
-      - "5672:5672"
-      - "15672:15672"  # Management UI
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-# Elasticsearch
-if is_enabled "ENABLE_ELASTICSEARCH"; then
-    echo -e "${BLUE}[INFO]${NC} Adding Elasticsearch ${ELASTICSEARCH_VERSION}..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION}
-    container_name: stackored-elasticsearch
-    restart: unless-stopped
-    environment:
-      - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-# Mailhog
-if is_enabled "ENABLE_MAILHOG"; then
-    echo -e "${BLUE}[INFO]${NC} Adding Mailhog..."
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOF
-  mailhog:
-    image: mailhog/mailhog:${MAILHOG_VERSION}
-    container_name: stackored-mailhog
-    restart: unless-stopped
-    ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
-    networks:
-      - stackored-net
-
-EOF
-fi
-
-###################################################################
-# ADD NETWORK & VOLUMES
-###################################################################
-
-cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOFNETWORK
-
-networks:
-  stackored-net:
-    external: true
-
-EOFNETWORK
-
-# Add volumes section if any data services are enabled
-VOLUMES_NEEDED=false
-is_enabled "ENABLE_MYSQL" && VOLUMES_NEEDED=true
-is_enabled "ENABLE_POSTGRES" && VOLUMES_NEEDED=true
-is_enabled "ENABLE_MONGO" && VOLUMES_NEEDED=true
-is_enabled "ENABLE_ELASTICSEARCH" && VOLUMES_NEEDED=true
-
-if [ "$VOLUMES_NEEDED" = true ]; then
-    cat >> "$ROOT_DIR/docker-compose.dynamic.yml" << EOFVOLUMES
-
-volumes:
-EOFVOLUMES
     
-    is_enabled "ENABLE_MYSQL" && echo "  mysql-data:" >> "$ROOT_DIR/docker-compose.dynamic.yml"
-    is_enabled "ENABLE_POSTGRES" && echo "  postgres-data:" >> "$ROOT_DIR/docker-compose.dynamic.yml"
-    is_enabled "ENABLE_MONGO" && echo "  mongo-data:" >> "$ROOT_DIR/docker-compose.dynamic.yml"
-    is_enabled "ENABLE_ELASTICSEARCH" && echo "  elasticsearch-data:" >> "$ROOT_DIR/docker-compose.dynamic.yml"
-fi
+    log_success "Generated docker-compose.projects.yml"
+}
 
-###################################################################
-# CREATE NETWORK IF NOT EXISTS
-###################################################################
-echo -e "${BLUE}[INFO]${NC} Ensuring Docker network exists..."
-docker network inspect stackored-net >/dev/null 2>&1 || docker network create stackored-net
+# Main
+main() {
+    log_info "Stackored Generator (Bash - No PHP!)"
+    cd "$ROOT_DIR"
+    
+    load_env
+    generate_base_compose
+    generate_traefik_config
+    generate_traefik_routes
+    generate_dynamic_compose
+    generate_projects
+    
+    log_success "Generation completed!"
+}
 
-###################################################################
-# SUMMARY
-###################################################################
-echo ""
-echo -e "${GREEN}[SUCCESS]${NC} Stackored generation completed!"
-echo ""
-echo "Generated files:"
-echo "  - stackored.yml (base compose)"
-echo "  - docker-compose.dynamic.yml (dynamic services)"
-echo ""
-echo "Enabled services:"
-is_enabled "ENABLE_MYSQL" && echo "  ✓ MySQL ${MYSQL_VERSION}"
-is_enabled "ENABLE_REDIS" && echo "  ✓ Redis ${REDIS_VERSION}"
-is_enabled "ENABLE_POSTGRES" && echo "  ✓ PostgreSQL ${POSTGRES_VERSION}"
-is_enabled "ENABLE_MONGO" && echo "  ✓ MongoDB ${MONGO_VERSION}"
-is_enabled "ENABLE_MEMCACHED" && echo "  ✓ Memcached ${MEMCACHED_VERSION}"
-is_enabled "ENABLE_RABBITMQ" && echo "  ✓ RabbitMQ ${RABBITMQ_VERSION}"
-is_enabled "ENABLE_ELASTICSEARCH" && echo "  ✓ Elasticsearch ${ELASTICSEARCH_VERSION}"
-is_enabled "ENABLE_MAILHOG" && echo "  ✓ Mailhog"
-echo ""
-echo "Next steps:"
-echo "  ./cli/stackored up     # Start all services"
-echo "  ./cli/stackored ps     # Check running services"
-echo ""
+main "$@"

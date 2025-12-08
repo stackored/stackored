@@ -22,6 +22,12 @@ services:
       SENTRY_DB_NAME: "sentry"
       SENTRY_DB_USER: "sentry"
       SENTRY_DB_PASSWORD: "{{ SENTRY_DB_PASSWORD | default('sentry') }}"
+    
+    command: >
+      bash -c "
+      sentry upgrade --noinput &&
+      sentry run web
+      "
 
     ports:
       - "{{ HOST_PORT_SENTRY | default('9001') }}:9000"
