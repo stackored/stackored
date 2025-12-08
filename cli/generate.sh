@@ -243,6 +243,12 @@ generate_traefik_routes() {
     cat > "$output" <<EOF
 http:
   routers:
+    traefik:
+      rule: "Host(\`traefik.${DEFAULT_TLD_SUFFIX}\`)"
+      entryPoints:
+        - websecure
+      service: api@internal
+      tls: {}
 EOF
     
     # Add all routers
@@ -393,13 +399,16 @@ generate_traefik_config() {
     cat > "$output" <<EOF
 api:
   dashboard: true
-  insecure: true
+  insecure: false
 
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: ${DOCKER_DEFAULT_NETWORK:-stackored-net}
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
 
 entryPoints:
   web:
@@ -494,6 +503,30 @@ EOF
     volumes:
       - ${project_path}:/var/www/html
       - ${project_path}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    
+    networks:
+      - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${project_name}.rule=Host(\`${project_domain}\`)"
+      - "traefik.http.routers.${project_name}.entrypoints=websecure"
+      - "traefik.http.routers.${project_name}.tls=true"
+      - "traefik.http.services.${project_name}.loadbalancer.server.port=80"
+    
+    depends_on:
+      - ${project_name}-php
+
+EOF
+        elif [ "$web_server" = "apache" ]; then
+            cat >> "$output" <<EOF
+  ${project_name}-web:
+    image: "php:${php_version:-8.2}-apache"
+    container_name: "${project_name}-web"
+    restart: unless-stopped
+    
+    volumes:
+      - ${project_path}:/var/www/html
     
     networks:
       - ${DOCKER_DEFAULT_NETWORK:-stackored-net}

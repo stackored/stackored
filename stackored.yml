@@ -1,0 +1,47 @@
+version: "3.9"
+
+###################################################################
+# STACKORED - CORE BASE COMPOSE
+# This file defines the essential shared services and networks
+# required for all Stackored projects. Each project will inject
+# its own docker-compose.yml on top of this base configuration.
+###################################################################
+
+services:
+  ###############################################################
+  # TRAEFIK - GLOBAL REVERSE PROXY FOR ALL PROJECTS
+  ###############################################################
+  traefik:
+    image: traefik:latest
+    container_name: stackored-traefik
+    restart: unless-stopped
+
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./core/traefik/traefik.yml:/etc/traefik/traefik.yml:ro"
+      - "./core/traefik/dynamic:/etc/traefik/dynamic:ro"
+      - "./core/certs:/certs:ro"
+
+    networks:
+      - stackored-net
+
+###################################################################
+# GLOBAL NETWORK (SHARED BY ALL PROJECT COMPOSE FILES)
+###################################################################
+networks:
+  stackored-net:
+    name: stackored-net
+    driver: bridge

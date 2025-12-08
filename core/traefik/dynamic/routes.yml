@@ -1,0 +1,228 @@
+http:
+  routers:
+    traefik:
+      rule: "Host(`traefik.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: api@internal
+      tls: {}
+    rabbitmq:
+      rule: "Host(`rabbitmq.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: rabbitmq
+      tls: {}
+    mailhog:
+      rule: "Host(`mailhog.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: mailhog
+      tls: {}
+    kibana:
+      rule: "Host(`kibana.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: kibana
+      tls: {}
+    grafana:
+      rule: "Host(`grafana.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: grafana
+      tls: {}
+    sonarqube:
+      rule: "Host(`sonarqube.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: sonarqube
+      tls: {}
+    sentry:
+      rule: "Host(`sentry.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: sentry
+      tls: {}
+    meilisearch:
+      rule: "Host(`meilisearch.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: meilisearch
+      tls: {}
+    tomcat:
+      rule: "Host(`tomcat.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: tomcat
+      tls: {}
+    kong:
+      rule: "Host(`kong-admin.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: kong
+      tls: {}
+    netdata:
+      rule: "Host(`netdata.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: netdata
+      tls: {}
+    kafbat-ui:
+      rule: "Host(`kafbat.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: kafbat-ui
+      tls: {}
+    activemq:
+      rule: "Host(`activemq.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: activemq
+      tls: {}
+    phpmyadmin:
+      rule: "Host(`phpmyadmin.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: tools-phpmyadmin
+      middlewares:
+        - phpmyadmin-stripprefix
+      tls: {}
+    adminer:
+      rule: "Host(`adminer.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: tools-adminer
+      middlewares:
+        - adminer-stripprefix
+      tls: {}
+    phppgadmin:
+      rule: "Host(`phppgadmin.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: tools-phppgadmin
+      middlewares:
+        - phppgadmin-stripprefix
+      tls: {}
+    phpmemcachedadmin:
+      rule: "Host(`phpmemcachedadmin.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: tools-phpmemcachedadmin
+      middlewares:
+        - phpmemcachedadmin-stripprefix
+      tls: {}
+    phpmongo:
+      rule: "Host(`phpmongo.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: tools-phpmongo
+      middlewares:
+        - phpmongo-stripprefix
+      tls: {}
+    opcache:
+      rule: "Host(`opcache.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: tools-opcache
+      middlewares:
+        - opcache-stripprefix
+      tls: {}
+
+  services:
+    rabbitmq:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-rabbitmq:15672"
+    mailhog:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-mailhog:8025"
+    kibana:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-kibana:5601"
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-grafana:3000"
+    sonarqube:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-sonarqube:9000"
+    sentry:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-sentry:9000"
+    meilisearch:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-meilisearch:7700"
+    tomcat:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tomcat:8080"
+    kong:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-kong:8001"
+    netdata:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-netdata:19999"
+    kafbat-ui:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-kafbat:8080"
+    activemq:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-activemq:8161"
+    tools-phpmyadmin:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tools:80"
+    tools-adminer:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tools:80"
+    tools-phppgadmin:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tools:80"
+    tools-phpmemcachedadmin:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tools:80"
+    tools-phpmongo:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tools:80"
+    tools-opcache:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-tools:80"
+
+  middlewares:
+    phpmyadmin-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/phpmyadmin"
+    adminer-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/adminer"
+    phppgadmin-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/phppgadmin"
+    phpmemcachedadmin-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/phpmemcachedadmin"
+    phpmongo-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/phpmongo"
+    opcache-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/opcache"
