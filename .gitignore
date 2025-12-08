@@ -1,2 +1,51 @@
+###################################################################
+# STACKORED .gitignore
+# Generated files that should not be committed to git
+###################################################################
+
+# Generated Docker Compose files
+stackored.yml
 docker-compose.dynamic.yml
 docker-compose.projects.yml
+
+# Generated Traefik configuration
+core/traefik/traefik.yml
+core/traefik/dynamic/
+
+# Docker volumes and data
+volumes/
+data/
+
+# Environment-specific files (optional - uncomment if needed)
+# .env
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Project-specific data (optional - uncomment if you want to ignore project files)
+# projects/*/
+# !projects/.gitkeep
+
+# SSL certificates (optional - uncomment if you want to ignore certs)
+core/certs/*.crt
+core/certs/*.key
+core/certs/*.pem
+!core/certs/.gitkeep
