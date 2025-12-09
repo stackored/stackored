@@ -1,9 +1,0 @@
-tls:
-  certificates:
-    - certFile: /certs/stackored-wildcard.crt
-      keyFile: /certs/stackored-wildcard.key
-  stores:
-    default:
-      defaultCertificate:
-        certFile: /certs/stackored-wildcard.crt
-        keyFile: /certs/stackored-wildcard.key

@@ -133,6 +133,7 @@ services:
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./core/traefik/traefik.yml:/etc/traefik/traefik.yml:ro"
       - "./core/traefik/dynamic:/etc/traefik/dynamic:ro"
       - "./core/certs:/certs:ro"
     networks:
@@ -260,19 +261,20 @@ EOF
     add_router_if_enabled "SENTRY_ENABLE" "sentry" "SENTRY_URL" >> "$output"
     add_router_if_enabled "MEILISEARCH_ENABLE" "meilisearch" "MEILISEARCH_URL" >> "$output"
     add_router_if_enabled "TOMCAT_ENABLE" "tomcat" "TOMCAT_URL" >> "$output"
-    add_router_if_enabled "KONG_ENABLE" "kong" "KONG_ADMIN_URL" >> "$output"
+    add_router_if_enabled "KONG_ENABLE" "kong-gateway" "KONG_URL" >> "$output"
+    add_router_if_enabled "KONG_ENABLE" "kong-admin" "KONG_ADMIN_URL" >> "$output"
     add_router_if_enabled "NETDATA_ENABLE" "netdata" "NETDATA_URL" >> "$output"
-    add_router_if_enabled "KAFBAT_ENABLE" "kafbat-ui" "KAFBAT_URL" >> "$output"
+    add_router_if_enabled "KAFBAT_ENABLE" "kafbat" "KAFBAT_URL" >> "$output"
     add_router_if_enabled "ACTIVEMQ_ENABLE" "activemq" "ACTIVEMQ_URL" >> "$output"
     
-    # Tools container admin tools (path-based routing)
+    # Tools container admin tools (subdomain-based routing - no path rewriting needed)
     if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
-        add_tools_router_if_enabled "phpmyadmin" "PHPMYADMIN_URL" >> "$output"
-        add_tools_router_if_enabled "adminer" "ADMINER_URL" >> "$output"
-        add_tools_router_if_enabled "phppgadmin" "PHPPGADMIN_URL" >> "$output"
-        add_tools_router_if_enabled "phpmemcachedadmin" "PHPMEMCACHEDADMIN_URL" >> "$output"
-        add_tools_router_if_enabled "phpmongo" "PHPMONGO_URL" >> "$output"
-        add_tools_router_if_enabled "opcache" "OPCACHE_URL" >> "$output"
+        add_router_if_enabled "TOOLS_CONTAINER_ENABLE" "phpmyadmin" "PHPMYADMIN_URL" >> "$output"
+        add_router_if_enabled "TOOLS_CONTAINER_ENABLE" "adminer" "ADMINER_URL" >> "$output"
+        add_router_if_enabled "TOOLS_CONTAINER_ENABLE" "phppgadmin" "PHPPGADMIN_URL" >> "$output"
+        add_router_if_enabled "TOOLS_CONTAINER_ENABLE" "phpmemcachedadmin" "PHPMEMCACHEDADMIN_URL" >> "$output"
+        add_router_if_enabled "TOOLS_CONTAINER_ENABLE" "phpmongo" "PHPMONGO_URL" >> "$output"
+        add_router_if_enabled "TOOLS_CONTAINER_ENABLE" "opcache" "OPCACHE_URL" >> "$output"
     fi
     
     # Add services section
@@ -290,16 +292,28 @@ EOF
     add_service_if_enabled "SENTRY_ENABLE" "sentry" "9000" >> "$output"
     add_service_if_enabled "MEILISEARCH_ENABLE" "meilisearch" "7700" >> "$output"
     add_service_if_enabled "TOMCAT_ENABLE" "tomcat" "8080" >> "$output"
-    add_service_if_enabled "KONG_ENABLE" "kong" "8001" >> "$output"
+    # Kong services - both point to same container but different ports
+    if [ "${KONG_ENABLE}" = "true" ]; then
+        cat >> "$output" <<EOF
+    kong-gateway:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-kong:8000"
+    kong-admin:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-kong:8001"
+EOF
+    fi
     add_service_if_enabled "NETDATA_ENABLE" "netdata" "19999" >> "$output"
-    add_service_if_enabled "KAFBAT_ENABLE" "kafbat-ui" "8080" >> "$output"
+    add_service_if_enabled "KAFBAT_ENABLE" "kafbat" "8080" >> "$output"
     add_service_if_enabled "ACTIVEMQ_ENABLE" "activemq" "8161" >> "$output"
     
-    # Tools container services (one service per tool with path)
+    # Tools container services (subdomain-based, no path rewriting)
     if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
         for tool in phpmyadmin adminer phppgadmin phpmemcachedadmin phpmongo opcache; do
             cat >> "$output" <<EOF
-    tools-${tool}:
+    ${tool}:
       loadBalancer:
         servers:
           - url: "http://stackored-tools:80"
@@ -307,20 +321,25 @@ EOF
         done
     fi
     
-    # Add middlewares section for path rewriting
-    if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
+    # Add TLS configuration - Force use of core/certs certificates
+    if [ "${SSL_ENABLE:-false}" = "true" ]; then
         cat >> "$output" <<EOF
 
-  middlewares:
+# TLS Configuration - Force use of core/certs certificates
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/stackored-wildcard.crt
+        keyFile: /certs/stackored-wildcard.key
+  certificates:
+    - certFile: /certs/stackored-wildcard.crt
+      keyFile: /certs/stackored-wildcard.key
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: false
 EOF
-        for tool in phpmyadmin adminer phppgadmin phpmemcachedadmin phpmongo opcache; do
-            cat >> "$output" <<EOF
-    ${tool}-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/${tool}"
-EOF
-        done
     fi
     
     log_success "Generated traefik routes"
@@ -347,26 +366,7 @@ EOF
     fi
 }
 
-# Add Traefik router for tools container with path rewrite
-add_tools_router_if_enabled() {
-    local tool_name=$1
-    local url_var=$2
-    
-    eval "local url=\${${url_var}:-$tool_name}"
-    
-    if [ "${TOOLS_CONTAINER_ENABLE}" = "true" ]; then
-        cat <<EOF
-    ${tool_name}:
-      rule: "Host(\`${url}.${DEFAULT_TLD_SUFFIX}\`)"
-      entryPoints:
-        - websecure
-      service: tools-${tool_name}
-      middlewares:
-        - ${tool_name}-stripprefix
-      tls: {}
-EOF
-    fi
-}
+
 
 # Add Traefik service if enabled
 add_service_if_enabled() {
@@ -390,8 +390,8 @@ EOF
 generate_traefik_config() {
     log_info "Generating traefik config..."
     
-    local ssl_enabled="${TRAEFIK_ENABLE_SSL:-false}"
-    local redirect_https="${TRAEFIK_REDIRECT_TO_HTTPS:-false}"
+    local ssl_enabled="${SSL_ENABLE:-false}"
+    local redirect_https="${REDIRECT_TO_HTTPS:-false}"
     local output="$ROOT_DIR/core/traefik/traefik.yml"
     
     mkdir -p "$ROOT_DIR/core/traefik"
@@ -429,8 +429,6 @@ EOF
         cat >> "$output" <<EOF
   websecure:
     address: ":443"
-    http:
-      tls: {}
 EOF
     fi
     
@@ -486,6 +484,19 @@ generate_projects() {
     
     volumes:
       - ${project_path}:/var/www/html
+EOF
+        
+        # Add custom PHP config if exists
+        if [ -f "$project_path/.stackored/php.ini" ]; then
+            echo "      - ${project_path}/.stackored/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro" >> "$output"
+        fi
+        
+        # Add custom PHP-FPM config if exists
+        if [ -f "$project_path/.stackored/php-fpm.conf" ]; then
+            echo "      - ${project_path}/.stackored/php-fpm.conf:/usr/local/etc/php-fpm.d/zz-custom.conf:ro" >> "$output"
+        fi
+        
+        cat >> "$output" <<EOF
     
     networks:
       - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
@@ -494,6 +505,24 @@ EOF
         
         # Generate web server container
         if [ "$web_server" = "nginx" ]; then
+            # Check for custom nginx config
+            local nginx_config_mount=""
+            
+            if [ -f "$project_path/.stackored/nginx.conf" ]; then
+                nginx_config_mount="      - ${project_path}/.stackored/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+            elif [ -f "$project_path/nginx.conf" ]; then
+                nginx_config_mount="      - ${project_path}/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+            else
+                # Use default template - generate in core/generated-configs/
+                mkdir -p "$ROOT_DIR/core/generated-configs"
+                local template_file="$ROOT_DIR/core/templates/nginx/default.conf"
+                local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-nginx.conf"
+                
+                # Generate config from template
+                sed "s/{{PROJECT_NAME}}/${project_name}/g" "$template_file" > "$generated_config"
+                nginx_config_mount="      - ${generated_config}:/etc/nginx/conf.d/default.conf:ro"
+            fi
+            
             cat >> "$output" <<EOF
   ${project_name}-web:
     image: "nginx:alpine"
@@ -502,7 +531,12 @@ EOF
     
     volumes:
       - ${project_path}:/var/www/html
-      - ${project_path}/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+EOF
+            
+            # Add config mount
+            echo "$nginx_config_mount" >> "$output"
+            
+            cat >> "$output" <<EOF
     
     networks:
       - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
@@ -519,6 +553,24 @@ EOF
 
 EOF
         elif [ "$web_server" = "apache" ]; then
+            # Check for custom apache config
+            local apache_config_mount=""
+            
+            if [ -f "$project_path/.stackored/apache.conf" ]; then
+                apache_config_mount="      - ${project_path}/.stackored/apache.conf:/etc/apache2/sites-available/000-default.conf:ro"
+            elif [ -f "$project_path/apache.conf" ]; then
+                apache_config_mount="      - ${project_path}/apache.conf:/etc/apache2/sites-available/000-default.conf:ro"
+            else
+                # Use default template - generate in core/generated-configs/
+                mkdir -p "$ROOT_DIR/core/generated-configs"
+                local template_file="$ROOT_DIR/core/templates/apache/default.conf"
+                local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-apache.conf"
+                
+                # Copy template (no placeholders needed for Apache)
+                cp "$template_file" "$generated_config"
+                apache_config_mount="      - ${generated_config}:/etc/apache2/sites-available/000-default.conf:ro"
+            fi
+            
             cat >> "$output" <<EOF
   ${project_name}-web:
     image: "php:${php_version:-8.2}-apache"
@@ -527,7 +579,27 @@ EOF
     
     volumes:
       - ${project_path}:/var/www/html
+EOF
+            
+            # Add config mount
+            echo "$apache_config_mount" >> "$output"
+            
+            cat >> "$output" <<EOF
     
+EOF
+            
+            # If no custom config, add command to set DocumentRoot
+            if [ -z "$apache_config_mount" ]; then
+                cat >> "$output" <<EOF
+    command: >
+      bash -c "sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf &&
+               sed -i '/<VirtualHost/a\    <Directory /var/www/html/public>\n        Options Indexes FollowSymLinks\n        AllowOverride All\n        Require all granted\n    </Directory>' /etc/apache2/sites-available/000-default.conf &&
+               apache2-foreground"
+    
+EOF
+            fi
+            
+            cat >> "$output" <<EOF
     networks:
       - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
     

@@ -47,5 +47,9 @@ Thumbs.db
 # SSL certificates (optional - uncomment if you want to ignore certs)
 core/certs/*.crt
 core/certs/*.key
+core/certs/*.srl
 core/certs/*.pem
 !core/certs/.gitkeep
+
+# Generated configs directory
+core/generated-configs/

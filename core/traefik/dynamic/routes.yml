@@ -54,11 +54,17 @@ http:
         - websecure
       service: tomcat
       tls: {}
-    kong:
+    kong-gateway:
+      rule: "Host(`kong.stackored.loc`)"
+      entryPoints:
+        - websecure
+      service: kong-gateway
+      tls: {}
+    kong-admin:
       rule: "Host(`kong-admin.stackored.loc`)"
       entryPoints:
         - websecure
-      service: kong
+      service: kong-admin
       tls: {}
     netdata:
       rule: "Host(`netdata.stackored.loc`)"
@@ -66,11 +72,11 @@ http:
         - websecure
       service: netdata
       tls: {}
-    kafbat-ui:
+    kafbat:
       rule: "Host(`kafbat.stackored.loc`)"
       entryPoints:
         - websecure
-      service: kafbat-ui
+      service: kafbat
       tls: {}
     activemq:
       rule: "Host(`activemq.stackored.loc`)"
@@ -82,49 +88,37 @@ http:
       rule: "Host(`phpmyadmin.stackored.loc`)"
       entryPoints:
         - websecure
-      service: tools-phpmyadmin
-      middlewares:
-        - phpmyadmin-stripprefix
+      service: phpmyadmin
       tls: {}
     adminer:
       rule: "Host(`adminer.stackored.loc`)"
       entryPoints:
         - websecure
-      service: tools-adminer
-      middlewares:
-        - adminer-stripprefix
+      service: adminer
       tls: {}
     phppgadmin:
       rule: "Host(`phppgadmin.stackored.loc`)"
       entryPoints:
         - websecure
-      service: tools-phppgadmin
-      middlewares:
-        - phppgadmin-stripprefix
+      service: phppgadmin
       tls: {}
     phpmemcachedadmin:
       rule: "Host(`phpmemcachedadmin.stackored.loc`)"
       entryPoints:
         - websecure
-      service: tools-phpmemcachedadmin
-      middlewares:
-        - phpmemcachedadmin-stripprefix
+      service: phpmemcachedadmin
       tls: {}
     phpmongo:
       rule: "Host(`phpmongo.stackored.loc`)"
       entryPoints:
         - websecure
-      service: tools-phpmongo
-      middlewares:
-        - phpmongo-stripprefix
+      service: phpmongo
       tls: {}
     opcache:
       rule: "Host(`opcache.stackored.loc`)"
       entryPoints:
         - websecure
-      service: tools-opcache
-      middlewares:
-        - opcache-stripprefix
+      service: opcache
       tls: {}
 
   services:
@@ -160,7 +154,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://stackored-tomcat:8080"
-    kong:
+    kong-gateway:
+      loadBalancer:
+        servers:
+          - url: "http://stackored-kong:8000"
+    kong-admin:
       loadBalancer:
         servers:
           - url: "http://stackored-kong:8001"
@@ -168,7 +166,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://stackored-netdata:19999"
-    kafbat-ui:
+    kafbat:
       loadBalancer:
         servers:
           - url: "http://stackored-kafbat:8080"
@@ -176,53 +174,42 @@ http:
       loadBalancer:
         servers:
           - url: "http://stackored-activemq:8161"
-    tools-phpmyadmin:
+    phpmyadmin:
       loadBalancer:
         servers:
           - url: "http://stackored-tools:80"
-    tools-adminer:
+    adminer:
       loadBalancer:
         servers:
           - url: "http://stackored-tools:80"
-    tools-phppgadmin:
+    phppgadmin:
       loadBalancer:
         servers:
           - url: "http://stackored-tools:80"
-    tools-phpmemcachedadmin:
+    phpmemcachedadmin:
       loadBalancer:
         servers:
           - url: "http://stackored-tools:80"
-    tools-phpmongo:
+    phpmongo:
       loadBalancer:
         servers:
           - url: "http://stackored-tools:80"
-    tools-opcache:
+    opcache:
       loadBalancer:
         servers:
           - url: "http://stackored-tools:80"
 
-  middlewares:
-    phpmyadmin-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/phpmyadmin"
-    adminer-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/adminer"
-    phppgadmin-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/phppgadmin"
-    phpmemcachedadmin-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/phpmemcachedadmin"
-    phpmongo-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/phpmongo"
-    opcache-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/opcache"
+# TLS Configuration - Force use of core/certs certificates
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/stackored-wildcard.crt
+        keyFile: /certs/stackored-wildcard.key
+  certificates:
+    - certFile: /certs/stackored-wildcard.crt
+      keyFile: /certs/stackored-wildcard.key
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: false

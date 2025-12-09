@@ -1,5 +1,3 @@
-version: "3.9"
-
 ###################################################################
 # STACKORED - CORE BASE COMPOSE
 # This file defines the essential shared services and networks
