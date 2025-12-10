@@ -15,7 +15,7 @@ services:
 
     volumes:
       - stackored-mongo-data:/data/db
-      - ./core/templates/database/mongo/mongo.conf:/etc/mongo/mongo.conf:ro
+      - ./core/generated-configs/mongo.conf:/etc/mongo/mongo.conf:ro
 
     ports:
       - "{{ HOST_PORT_MONGO | default('27017') }}:27017"

@@ -35,32 +35,16 @@ generate_projects() {
         
         log_info "Processing project: $project_name"
         
-        # Parse JSON - tek awk ile tüm değerleri çıkar (optimize edildi)
-        # 3 ayrı grep+cut yerine tek awk kullanımı
-        local json_values
-        json_values=$(awk '
-            /"version"[[:space:]]*:[[:space:]]*"/ { 
-                match($0, /"version"[[:space:]]*:[[:space:]]*"([^"]*)"/, arr)
-                version = arr[1]
-            }
-            /"webserver"[[:space:]]*:[[:space:]]*"/ { 
-                match($0, /"webserver"[[:space:]]*:[[:space:]]*"([^"]*)"/, arr)
-                webserver = arr[1]
-            }
-            /"domain"[[:space:]]*:[[:space:]]*"/ { 
-                match($0, /"domain"[[:space:]]*:[[:space:]]*"([^"]*)"/, arr)
-                domain = arr[1]
-            }
-            END {
-                print version "|" webserver "|" domain
-            }
-        ' "$project_json")
+        # Parse JSON - sed kullanarak (macOS BSD awk uyumlu)
+        local php_version=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$project_json")
+        local web_server=$(sed -n 's/.*"webserver"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$project_json")
+        local project_domain=$(sed -n 's/.*"domain"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$project_json")
+        local document_root=$(sed -n 's/.*"document_root"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$project_json")
         
-        # Split values
-        local php_version="${json_values%%|*}"
-        local temp="${json_values#*|}"
-        local web_server="${temp%%|*}"
-        local project_domain="${temp#*|}"
+        # Default document_root to "public" if not specified
+        if [ -z "$document_root" ]; then
+            document_root="public"
+        fi
         
         # Validate and set defaults for missing values
         if [ -z "$php_version" ]; then
@@ -239,7 +223,9 @@ EOF
                 local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-caddy.conf"
                 
                 # Generate config from template
-                sed "s/{{PROJECT_NAME}}/${project_name}/g" "$template_file" > "$generated_config"
+                sed -e "s/{{PROJECT_NAME}}/${project_name}/g" \
+                    -e "s|{{DOCUMENT_ROOT}}|${document_root}|g" \
+                    "$template_file" > "$generated_config"
                 caddy_config_mount="      - ${generated_config}:/etc/caddy/Caddyfile:ro"
             fi
             
@@ -276,19 +262,27 @@ EOF
             # Check for custom ferron config
             local ferron_config_mount=""
             
-            if [ -f "$project_path/.stackored/ferron.conf" ]; then
-                ferron_config_mount="      - ${project_path}/.stackored/ferron.conf:/etc/ferron/conf.d/default.conf:ro"
+            # Ferron YAML config için (.stackored/ferron.yaml veya ferron.yaml)
+            if [ -f "$project_path/.stackored/ferron.yaml" ]; then
+                ferron_config_mount="      - ${project_path}/.stackored/ferron.yaml:/etc/ferron/conf.d/default.yaml:ro"
+            elif [ -f "$project_path/ferron.yaml" ]; then
+                ferron_config_mount="      - ${project_path}/ferron.yaml:/etc/ferron/conf.d/default.yaml:ro"
+            # Eski .conf formatı için backward compatibility
+            elif [ -f "$project_path/.stackored/ferron.conf" ]; then
+                ferron_config_mount="      - ${project_path}/.stackored/ferron.conf:/etc/ferron/conf.d/default.yaml:ro"
             elif [ -f "$project_path/ferron.conf" ]; then
-                ferron_config_mount="      - ${project_path}/ferron.conf:/etc/ferron/conf.d/default.conf:ro"
+                ferron_config_mount="      - ${project_path}/ferron.conf:/etc/ferron/conf.d/default.yaml:ro"
             else
-                # Use default template - generate in core/generated-configs/
+                # Use default YAML template - generate in core/generated-configs/
                 mkdir -p "$ROOT_DIR/core/generated-configs"
-                local template_file="$ROOT_DIR/core/templates/servers/ferron/default.conf"
-                local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-ferron.conf"
+                local template_file="$ROOT_DIR/core/templates/servers/ferron/ferron.yaml"
+                local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-ferron.yaml"
                 
                 # Generate config from template
-                sed "s/{{PROJECT_NAME}}/${project_name}/g" "$template_file" > "$generated_config"
-                ferron_config_mount="      - ${generated_config}:/etc/ferron/conf.d/default.conf:ro"
+                sed -e "s/{{PROJECT_NAME}}/${project_name}/g" \
+                    -e "s|{{DOCUMENT_ROOT}}|${document_root}|g" \
+                    "$template_file" > "$generated_config"
+                ferron_config_mount="      - ${generated_config}:/etc/ferron/conf.d/default.yaml:ro"
             fi
             
             cat >> "$output" <<EOF

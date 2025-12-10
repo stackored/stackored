@@ -1,5 +1,5 @@
 :80 {
-    root * /var/www/html/{{PROJECT_NAME}}
+    root * /var/www/html/{{DOCUMENT_ROOT}}
     
     # Enable PHP-FPM
     php_fastcgi {{PROJECT_NAME}}-php:9000

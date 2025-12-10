@@ -19,6 +19,7 @@ source "$SCRIPT_DIR/lib/logger.sh"
 source "$SCRIPT_DIR/lib/constants.sh"
 source "$SCRIPT_DIR/lib/env-loader.sh"
 source "$SCRIPT_DIR/lib/template-processor.sh"
+source "$SCRIPT_DIR/lib/config-generator.sh"
 source "$SCRIPT_DIR/lib/compose-generator.sh"
 source "$SCRIPT_DIR/lib/traefik-generator.sh"
 source "$SCRIPT_DIR/lib/project-generator.sh"
@@ -33,6 +34,9 @@ main() {
     
     # Environment yükle
     load_env
+    
+    # Generate module configs
+    generate_module_configs
     
     # Compose dosyalarını üret
     generate_base_compose

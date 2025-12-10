@@ -54,6 +54,7 @@ rm -f "$STACKORED_ROOT/stackored/docker-compose.dynamic.yml"
 rm -f "$STACKORED_ROOT/stackored/docker-compose.projects.yml"
 rm -f "$STACKORED_ROOT/stackored/core/traefik/traefik.yml"
 rm -rf "$STACKORED_ROOT/stackored/core/traefik/dynamic/"
+rm -rf "$STACKORED_ROOT/stackored/core/generated-configs/"
 
 echo ""
 echo -e "${GREEN}✔ Stackored başarıyla kaldırıldı!${NC}"

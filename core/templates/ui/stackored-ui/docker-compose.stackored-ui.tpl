@@ -1,16 +1,20 @@
 ###################################################################
 # STACKORED WEB UI COMPOSE TEMPLATE
-# Nginx container for serving the web interface
+# Nginx + PHP-FPM container for serving the web interface
 ###################################################################
 
 services:
   stackored-ui:
-    image: "nginx:alpine"
+    build:
+      context: ./.ui
+      dockerfile: Dockerfile
     container_name: "stackored-ui"
     restart: unless-stopped
     
     volumes:
       - ./.ui:/usr/share/nginx/html:ro
+      - ./:/app:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     
     networks:
       - {{ DOCKER_DEFAULT_NETWORK }}

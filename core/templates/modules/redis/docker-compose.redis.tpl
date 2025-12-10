@@ -12,7 +12,7 @@ services:
 
     volumes:
       - stackored-redis-data:/data
-      - ./core/templates/cache/redis/redis.conf:/etc/redis/redis.conf:ro
+      - ./core/generated-configs/redis.conf:/etc/redis/redis.conf:ro
 
     ports:
       - "{{ HOST_PORT_REDIS | default('6379') }}:6379"

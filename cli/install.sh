@@ -65,59 +65,40 @@ EOF
     fi
 }
 
-# Check and update Docker Compose version
+# Check Docker Compose version
 check_docker_compose_version() {
     log_info "Checking Docker Compose version..."
     
     # Get current version
-    local current_version=$(docker compose version 2>/dev/null | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    local current_version=$(docker compose version 2>/dev/null | sed -E 's/.*v([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
     
     if [ -z "$current_version" ]; then
         log_error "Docker Compose not found! Please install Docker Compose first."
+        log_info "Visit: https://docs.docker.com/compose/install/"
         exit 1
     fi
     
     log_info "Current Docker Compose version: v$current_version"
     
-    # Get latest version from GitHub
-    local latest_version=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
-    
-    if [ -z "$latest_version" ]; then
-        log_warn "Could not fetch latest Docker Compose version. Continuing with current version..."
-        return
-    fi
-    
-    log_info "Latest Docker Compose version: v$latest_version"
-    
-    # Compare versions (simple major.minor comparison)
+    # Extract major and minor version
     local current_major=$(echo "$current_version" | cut -d. -f1)
-    local latest_major=$(echo "$latest_version" | cut -d. -f1)
+    local current_minor=$(echo "$current_version" | cut -d. -f2)
     
-    # Minimum recommended version is 3.0.0 (to avoid concurrent map writes bug)
-    local min_major=3
+    # Minimum recommended version is 2.0.0 (Docker Compose v2 series)
+    local min_major=2
+    local min_minor=0
     
-    if [ "$current_major" -lt "$min_major" ]; then
-        log_warn "⚠️  Your Docker Compose version (v$current_version) is outdated!"
-        log_warn "   Minimum recommended version: v${min_major}.0.0"
-        log_warn "   Latest version: v$latest_version"
+    if [ "$current_major" -lt "$min_major" ] || ([ "$current_major" -eq "$min_major" ] && [ "$current_minor" -lt "$min_minor" ]); then
+        log_error "⚠️  Your Docker Compose version (v$current_version) is too old!"
+        log_error "   Minimum required version: v${min_major}.${min_minor}.0"
         echo ""
-        echo "   The old version has a 'concurrent map writes' bug that causes issues."
-        echo "   Updating automatically..."
+        echo "   Please update Docker Compose manually:"
+        echo "   - macOS: Update Docker Desktop from https://www.docker.com/products/docker-desktop"
+        echo "   - Linux: Visit https://docs.docker.com/compose/install/"
         echo ""
-        
-        log_info "Updating Docker Compose to v$latest_version..."
-        
-        # Download and install
-        if sudo curl -L "https://github.com/docker/compose/releases/download/v${latest_version}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose 2>/dev/null; then
-            sudo chmod +x /usr/local/bin/docker-compose
-            log_success "Docker Compose updated to v$latest_version"
-        else
-            log_error "Failed to update Docker Compose. Please update manually."
-            log_info "Run: sudo curl -L \"https://github.com/docker/compose/releases/download/v${latest_version}/docker-compose-\$(uname -s)-\$(uname -m)\" -o /usr/local/bin/docker-compose"
-            exit 1
-        fi
+        exit 1
     else
-        log_success "Docker Compose version is sufficient (v$current_version >= v${min_major}.0.0)"
+        log_success "Docker Compose version is sufficient (v$current_version >= v${min_major}.${min_minor}.0)"
     fi
 }
 
