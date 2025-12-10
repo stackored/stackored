@@ -83,51 +83,51 @@ generate_dynamic_compose() {
     echo "" >> "$output"
     
     # Databases
-    include_module "MYSQL_ENABLE" "database/mysql/docker-compose.mysql.tpl" >> "$output"
-    include_module "MARIADB_ENABLE" "database/mariadb/docker-compose.mariadb.tpl" >> "$output"
-    include_module "POSTGRES_ENABLE" "database/postgres/docker-compose.postgres.tpl" >> "$output"
-    include_module "MONGO_ENABLE" "database/mongo/docker-compose.mongo.tpl" >> "$output"
-    include_module "CASSANDRA_ENABLE" "database/cassandra/docker-compose.cassandra.tpl" >> "$output"
-    include_module "PERCONA_ENABLE" "database/percona/docker-compose.percona.tpl" >> "$output"
-    include_module "COUCHDB_ENABLE" "database/couchdb/docker-compose.couchdb.tpl" >> "$output"
-    include_module "COUCHBASE_ENABLE" "database/couchbase/docker-compose.couchbase.tpl" >> "$output"
+    include_module "MYSQL_ENABLE" "modules/mysql/docker-compose.mysql.tpl" >> "$output"
+    include_module "MARIADB_ENABLE" "modules/mariadb/docker-compose.mariadb.tpl" >> "$output"
+    include_module "POSTGRES_ENABLE" "modules/postgres/docker-compose.postgres.tpl" >> "$output"
+    include_module "MONGO_ENABLE" "modules/mongo/docker-compose.mongo.tpl" >> "$output"
+    include_module "CASSANDRA_ENABLE" "modules/cassandra/docker-compose.cassandra.tpl" >> "$output"
+    include_module "PERCONA_ENABLE" "modules/percona/docker-compose.percona.tpl" >> "$output"
+    include_module "COUCHDB_ENABLE" "modules/couchdb/docker-compose.couchdb.tpl" >> "$output"
+    include_module "COUCHBASE_ENABLE" "modules/couchbase/docker-compose.couchbase.tpl" >> "$output"
     
     # Caching
-    include_module "REDIS_ENABLE" "cache/redis/docker-compose.redis.tpl" >> "$output"
-    include_module "MEMCACHED_ENABLE" "cache/memcached/docker-compose.memcached.tpl" >> "$output"
+    include_module "REDIS_ENABLE" "modules/redis/docker-compose.redis.tpl" >> "$output"
+    include_module "MEMCACHED_ENABLE" "modules/memcached/docker-compose.memcached.tpl" >> "$output"
     
     # Message Queues
-    include_module "RABBITMQ_ENABLE" "messaging/rabbitmq/docker-compose.rabbitmq.tpl" >> "$output"
-    include_module "NATS_ENABLE" "messaging/nats/docker-compose.nats.tpl" >> "$output"
-    include_module "KAFKA_ENABLE" "messaging/kafka/docker-compose.kafka.tpl" >> "$output"
-    include_module "KAFBAT_ENABLE" "messaging/kafbat/docker-compose.kafbat.tpl" >> "$output"
-    include_module "ACTIVEMQ_ENABLE" "messaging/activemq/docker-compose.activemq.tpl" >> "$output"
+    include_module "RABBITMQ_ENABLE" "modules/rabbitmq/docker-compose.rabbitmq.tpl" >> "$output"
+    include_module "NATS_ENABLE" "modules/nats/docker-compose.nats.tpl" >> "$output"
+    include_module "KAFKA_ENABLE" "modules/kafka/docker-compose.kafka.tpl" >> "$output"
+    include_module "KAFBAT_ENABLE" "modules/kafbat/docker-compose.kafbat.tpl" >> "$output"
+    include_module "ACTIVEMQ_ENABLE" "modules/activemq/docker-compose.activemq.tpl" >> "$output"
     
     # Search
-    include_module "ELASTICSEARCH_ENABLE" "search/elasticsearch/docker-compose.elasticsearch.tpl" >> "$output"
-    include_module "MEILISEARCH_ENABLE" "search/meilisearch/docker-compose.meilisearch.tpl" >> "$output"
-    include_module "SOLR_ENABLE" "search/solr/docker-compose.solr.tpl" >> "$output"
+    include_module "ELASTICSEARCH_ENABLE" "modules/elasticsearch/docker-compose.elasticsearch.tpl" >> "$output"
+    include_module "MEILISEARCH_ENABLE" "modules/meilisearch/docker-compose.meilisearch.tpl" >> "$output"
+    include_module "SOLR_ENABLE" "modules/solr/docker-compose.solr.tpl" >> "$output"
     
     # Monitoring
-    include_module "KIBANA_ENABLE" "monitoring/kibana/docker-compose.kibana.tpl" >> "$output"
-    include_module "GRAFANA_ENABLE" "monitoring/grafana/docker-compose.grafana.tpl" >> "$output"
-    include_module "LOGSTASH_ENABLE" "monitoring/logstash/docker-compose.logstash.tpl" >> "$output"
-    include_module "NETDATA_ENABLE" "utils/netdata/docker-compose.netdata.tpl" >> "$output"
+    include_module "KIBANA_ENABLE" "modules/kibana/docker-compose.kibana.tpl" >> "$output"
+    include_module "GRAFANA_ENABLE" "modules/grafana/docker-compose.grafana.tpl" >> "$output"
+    include_module "LOGSTASH_ENABLE" "modules/logstash/docker-compose.logstash.tpl" >> "$output"
+    include_module "NETDATA_ENABLE" "modules/netdata/docker-compose.netdata.tpl" >> "$output"
     
     # QA
-    include_module "SONARQUBE_ENABLE" "qa/sonarqube/docker-compose.sonarqube.tpl" >> "$output"
-    include_module "SENTRY_ENABLE" "qa/sentry/docker-compose.sentry.tpl" >> "$output"
-    include_module "BLACKFIRE_ENABLE" "qa/blackfire/docker-compose.blackfire.tpl" >> "$output"
+    include_module "SONARQUBE_ENABLE" "modules/sonarqube/docker-compose.sonarqube.tpl" >> "$output"
+    include_module "SENTRY_ENABLE" "modules/sentry/docker-compose.sentry.tpl" >> "$output"
+    include_module "BLACKFIRE_ENABLE" "modules/blackfire/docker-compose.blackfire.tpl" >> "$output"
     
     # App Servers
-    include_module "TOMCAT_ENABLE" "appserver/tomcat/docker-compose.tomcat.tpl" >> "$output"
-    include_module "KONG_ENABLE" "appserver/kong/docker-compose.kong.tpl" >> "$output"
+    include_module "TOMCAT_ENABLE" "modules/tomcat/docker-compose.tomcat.tpl" >> "$output"
+    include_module "KONG_ENABLE" "modules/kong/docker-compose.kong.tpl" >> "$output"
     
     # Tools
-    include_module "MAILHOG_ENABLE" "utils/mailhog/docker-compose.mailhog.tpl" >> "$output"
+    include_module "MAILHOG_ENABLE" "modules/mailhog/docker-compose.mailhog.tpl" >> "$output"
     include_module "COMPOSER_ENABLE" "tools/composer/docker-compose.composer.tpl" >> "$output"
-    include_module "NGROK_ENABLE" "utils/ngrok/docker-compose.ngrok.tpl" >> "$output"
-    include_module "SELENIUM_ENABLE" "utils/selenium/docker-compose.selenium.tpl" >> "$output"
+    include_module "NGROK_ENABLE" "modules/ngrok/docker-compose.ngrok.tpl" >> "$output"
+    include_module "SELENIUM_ENABLE" "modules/selenium/docker-compose.selenium.tpl" >> "$output"
     include_module "TOOLS_CONTAINER_ENABLE" "ui/tools/docker-compose.tools.tpl" >> "$output"
     
     # Stackored Web UI

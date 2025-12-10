@@ -21,7 +21,8 @@ case "$COMMAND" in
         ;;
 
     up)
-        docker compose "${COMPOSE_FILES[@]}" up -d
+        # Only pull images that don't exist locally (avoids rate limits)
+        docker compose "${COMPOSE_FILES[@]}" up -d --pull=missing
         ;;
 
     down)

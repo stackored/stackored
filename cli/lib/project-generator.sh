@@ -125,7 +125,7 @@ EOF
             else
                 # Use default template - generate in core/generated-configs/
                 mkdir -p "$ROOT_DIR/$CONST_PATH_GENERATED_CONFIGS"
-                local template_file="$ROOT_DIR/$CONST_PATH_TEMPLATES/nginx/default.conf"
+                local template_file="$ROOT_DIR/$CONST_PATH_TEMPLATES/servers/nginx/default.conf"
                 local generated_config="$ROOT_DIR/$CONST_PATH_GENERATED_CONFIGS/${project_name}-nginx.conf"
                 
                 # Generate config from template
@@ -173,7 +173,7 @@ EOF
             else
                 # Use default template - generate in core/generated-configs/
                 mkdir -p "$ROOT_DIR/core/generated-configs"
-                local template_file="$ROOT_DIR/core/templates/apache/default.conf"
+                local template_file="$ROOT_DIR/core/templates/servers/apache/default.conf"
                 local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-apache.conf"
                 
                 # Copy template (no placeholders needed for Apache)
@@ -210,6 +210,102 @@ EOF
             fi
             
             cat >> "$output" <<EOF
+    networks:
+      - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${project_name}.rule=Host(\`${project_domain}\`)"
+      - "traefik.http.routers.${project_name}.entrypoints=websecure"
+      - "traefik.http.routers.${project_name}.tls=true"
+      - "traefik.http.services.${project_name}.loadbalancer.server.port=80"
+    
+    depends_on:
+      - ${project_name}-php
+
+EOF
+        elif [ "$web_server" = "caddy" ]; then
+            # Check for custom caddy config
+            local caddy_config_mount=""
+            
+            if [ -f "$project_path/.stackored/Caddyfile" ]; then
+                caddy_config_mount="      - ${project_path}/.stackored/Caddyfile:/etc/caddy/Caddyfile:ro"
+            elif [ -f "$project_path/Caddyfile" ]; then
+                caddy_config_mount="      - ${project_path}/Caddyfile:/etc/caddy/Caddyfile:ro"
+            else
+                # Use default template - generate in core/generated-configs/
+                mkdir -p "$ROOT_DIR/core/generated-configs"
+                local template_file="$ROOT_DIR/core/templates/servers/caddy/Caddyfile"
+                local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-caddy.conf"
+                
+                # Generate config from template
+                sed "s/{{PROJECT_NAME}}/${project_name}/g" "$template_file" > "$generated_config"
+                caddy_config_mount="      - ${generated_config}:/etc/caddy/Caddyfile:ro"
+            fi
+            
+            cat >> "$output" <<EOF
+  ${project_name}-web:
+    image: "caddy:latest"
+    container_name: "${project_name}-web"
+    restart: unless-stopped
+    
+    volumes:
+      - ${project_path}:/var/www/html
+EOF
+            
+            # Add config mount
+            echo "$caddy_config_mount" >> "$output"
+            
+            cat >> "$output" <<EOF
+    
+    networks:
+      - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${project_name}.rule=Host(\`${project_domain}\`)"
+      - "traefik.http.routers.${project_name}.entrypoints=websecure"
+      - "traefik.http.routers.${project_name}.tls=true"
+      - "traefik.http.services.${project_name}.loadbalancer.server.port=80"
+    
+    depends_on:
+      - ${project_name}-php
+
+EOF
+        elif [ "$web_server" = "ferron" ]; then
+            # Check for custom ferron config
+            local ferron_config_mount=""
+            
+            if [ -f "$project_path/.stackored/ferron.conf" ]; then
+                ferron_config_mount="      - ${project_path}/.stackored/ferron.conf:/etc/ferron/conf.d/default.conf:ro"
+            elif [ -f "$project_path/ferron.conf" ]; then
+                ferron_config_mount="      - ${project_path}/ferron.conf:/etc/ferron/conf.d/default.conf:ro"
+            else
+                # Use default template - generate in core/generated-configs/
+                mkdir -p "$ROOT_DIR/core/generated-configs"
+                local template_file="$ROOT_DIR/core/templates/servers/ferron/default.conf"
+                local generated_config="$ROOT_DIR/core/generated-configs/${project_name}-ferron.conf"
+                
+                # Generate config from template
+                sed "s/{{PROJECT_NAME}}/${project_name}/g" "$template_file" > "$generated_config"
+                ferron_config_mount="      - ${generated_config}:/etc/ferron/conf.d/default.conf:ro"
+            fi
+            
+            cat >> "$output" <<EOF
+  ${project_name}-web:
+    image: "ferronserver/ferron:latest"
+    container_name: "${project_name}-web"
+    restart: unless-stopped
+    
+    volumes:
+      - ${project_path}:/var/www/html
+EOF
+            
+            # Add config mount
+            echo "$ferron_config_mount" >> "$output"
+            
+            cat >> "$output" <<EOF
+    
     networks:
       - ${DOCKER_DEFAULT_NETWORK:-stackored-net}
     
