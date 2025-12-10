@@ -12,77 +12,11 @@ http:
         - websecure
       service: rabbitmq
       tls: {}
-    mailhog:
-      rule: "Host(`mailhog.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: mailhog
-      tls: {}
-    kibana:
-      rule: "Host(`kibana.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: kibana
-      tls: {}
-    grafana:
-      rule: "Host(`grafana.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: grafana
-      tls: {}
-    sonarqube:
-      rule: "Host(`sonarqube.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: sonarqube
-      tls: {}
-    sentry:
-      rule: "Host(`sentry.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: sentry
-      tls: {}
-    meilisearch:
-      rule: "Host(`meilisearch.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: meilisearch
-      tls: {}
-    tomcat:
-      rule: "Host(`tomcat.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: tomcat
-      tls: {}
-    kong-gateway:
-      rule: "Host(`kong.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: kong-gateway
-      tls: {}
-    kong-admin:
-      rule: "Host(`kong-admin.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: kong-admin
-      tls: {}
     netdata:
       rule: "Host(`netdata.stackored.loc`)"
       entryPoints:
         - websecure
       service: netdata
-      tls: {}
-    kafbat:
-      rule: "Host(`kafbat.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: kafbat
-      tls: {}
-    activemq:
-      rule: "Host(`activemq.stackored.loc`)"
-      entryPoints:
-        - websecure
-      service: activemq
       tls: {}
     phpmyadmin:
       rule: "Host(`phpmyadmin.stackored.loc`)"
@@ -126,54 +60,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://stackored-rabbitmq:15672"
-    mailhog:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-mailhog:8025"
-    kibana:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-kibana:5601"
-    grafana:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-grafana:3000"
-    sonarqube:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-sonarqube:9000"
-    sentry:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-sentry:9000"
-    meilisearch:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-meilisearch:7700"
-    tomcat:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-tomcat:8080"
-    kong-gateway:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-kong:8000"
-    kong-admin:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-kong:8001"
     netdata:
       loadBalancer:
         servers:
           - url: "http://stackored-netdata:19999"
-    kafbat:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-kafbat:8080"
-    activemq:
-      loadBalancer:
-        servers:
-          - url: "http://stackored-activemq:8161"
     phpmyadmin:
       loadBalancer:
         servers:

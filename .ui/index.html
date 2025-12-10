@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stackored - Docker Development Environment Manager</title>
+
+    <!-- Vuetify CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@3.4.9/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+    <!-- Material Design Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@7.3.67/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      [v-cloak] {
+        display: none;
+      }
+      .logo-text {
+        font-family: "Roboto", sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" v-cloak>
+      <v-app>
+        <v-layout class="rounded rounded-md">
+          <!-- App Bar -->
+          <v-app-bar color="primary" prominent>
+            <template v-slot:prepend>
+              <v-app-bar-nav-icon
+                @click="drawer = !drawer"
+              ></v-app-bar-nav-icon>
+            </template>
+
+            <v-toolbar-title class="logo-text">
+              <v-icon icon="mdi-docker" size="large" class="mr-2"></v-icon>
+              Stackored
+            </v-toolbar-title>
+
+            <v-spacer></v-spacer>
+
+            <v-btn icon @click="toggleTheme">
+              <v-icon
+                >{{ theme.global.current.value.dark ? 'mdi-weather-sunny' :
+                'mdi-weather-night' }}</v-icon
+              >
+            </v-btn>
+
+            <v-btn icon>
+              <v-icon>mdi-bell-outline</v-icon>
+            </v-btn>
+
+            <v-menu>
+              <template v-slot:activator="{ props }">
+                <v-btn icon v-bind="props">
+                  <v-icon>mdi-account-circle</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <v-list-item>
+                  <v-list-item-title>Profile</v-list-item-title>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title>Settings</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </v-app-bar>
+
+          <!-- Left Navigation Drawer -->
+          <v-navigation-drawer v-model="drawer" temporary>
+            <v-list nav>
+              <v-list-item
+                v-for="item in menuItems"
+                :key="item.title"
+                :prepend-icon="item.icon"
+                :title="item.title"
+                :value="item.value"
+                @click="currentView = item.value"
+                :active="currentView === item.value"
+              ></v-list-item>
+            </v-list>
+
+            <template v-slot:append>
+              <div class="pa-4">
+                <v-btn block color="primary" variant="outlined">
+                  <v-icon start>mdi-cog</v-icon>
+                  Settings
+                </v-btn>
+              </div>
+            </template>
+          </v-navigation-drawer>
+
+          <!-- Right Navigation Drawer -->
+          <v-navigation-drawer location="right" permanent width="280">
+            <v-list nav density="compact">
+              <v-list-subheader>QUICK ACTIONS</v-list-subheader>
+
+              <v-list-item
+                prepend-icon="mdi-play-circle"
+                title="Start All"
+                subtitle="stackored up"
+                @click="executeCommand('up')"
+              ></v-list-item>
+
+              <v-list-item
+                prepend-icon="mdi-stop-circle"
+                title="Stop All"
+                subtitle="stackored down"
+                @click="executeCommand('down')"
+              ></v-list-item>
+
+              <v-list-item
+                prepend-icon="mdi-restart"
+                title="Restart"
+                subtitle="stackored restart"
+                @click="executeCommand('restart')"
+              ></v-list-item>
+
+              <v-divider class="my-2"></v-divider>
+
+              <v-list-subheader>SYSTEM STATUS</v-list-subheader>
+
+              <v-list-item>
+                <template v-slot:prepend>
+                  <v-icon :color="systemStatus.running ? 'success' : 'error'">
+                    mdi-circle
+                  </v-icon>
+                </template>
+                <v-list-item-title>Docker</v-list-item-title>
+                <v-list-item-subtitle>
+                  {{ systemStatus.running ? 'Running' : 'Stopped' }}
+                </v-list-item-subtitle>
+              </v-list-item>
+
+              <v-list-item>
+                <template v-slot:prepend>
+                  <v-icon color="info">mdi-memory</v-icon>
+                </template>
+                <v-list-item-title>Containers</v-list-item-title>
+                <v-list-item-subtitle
+                  >{{ systemStatus.containers }} active</v-list-item-subtitle
+                >
+              </v-list-item>
+            </v-list>
+          </v-navigation-drawer>
+
+          <!-- Main Content -->
+          <v-main class="d-flex align-center justify-center bg-grey-lighten-4">
+            <v-container fluid>
+              <!-- Dashboard View -->
+              <div v-if="currentView === 'dashboard'">
+                <v-row>
+                  <v-col cols="12">
+                    <h1 class="text-h3 mb-4">Dashboard</h1>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col
+                    cols="12"
+                    md="4"
+                    v-for="card in dashboardCards"
+                    :key="card.title"
+                  >
+                    <v-card elevation="2" hover>
+                      <v-card-text>
+                        <div class="d-flex align-center mb-4">
+                          <v-icon :color="card.color" size="48" class="mr-4">
+                            {{ card.icon }}
+                          </v-icon>
+                          <div>
+                            <div class="text-h4">{{ card.value }}</div>
+                            <div class="text-subtitle-1 text-grey">
+                              {{ card.title }}
+                            </div>
+                          </div>
+                        </div>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+
+                <v-row class="mt-4">
+                  <v-col cols="12">
+                    <v-card>
+                      <v-card-title>
+                        <v-icon start>mdi-chart-line</v-icon>
+                        Recent Activity
+                      </v-card-title>
+                      <v-card-text>
+                        <v-sheet
+                          border="dashed md"
+                          color="surface-light"
+                          height="300"
+                          rounded="lg"
+                          width="100%"
+                          class="d-flex align-center justify-center"
+                        >
+                          <div class="text-center text-grey">
+                            <v-icon size="64" class="mb-4"
+                              >mdi-chart-timeline-variant</v-icon
+                            >
+                            <div class="text-h6">Activity Chart</div>
+                            <div class="text-caption">Coming soon...</div>
+                          </div>
+                        </v-sheet>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </div>
+
+              <!-- Services View -->
+              <div v-if="currentView === 'services'">
+                <v-row>
+                  <v-col cols="12">
+                    <h1 class="text-h3 mb-4">Services</h1>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12">
+                    <v-card>
+                      <v-card-text>
+                        <v-sheet
+                          border="dashed md"
+                          color="surface-light"
+                          height="400"
+                          rounded="lg"
+                          width="100%"
+                          class="d-flex align-center justify-center"
+                        >
+                          <div class="text-center text-grey">
+                            <v-icon size="64" class="mb-4">mdi-server</v-icon>
+                            <div class="text-h6">Services Management</div>
+                            <div class="text-caption">Coming soon...</div>
+                          </div>
+                        </v-sheet>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </div>
+
+              <!-- Projects View -->
+              <div v-if="currentView === 'projects'">
+                <v-row>
+                  <v-col cols="12">
+                    <h1 class="text-h3 mb-4">Projects</h1>
+                  </v-col>
+                </v-row>
+
+                <v-row>
+                  <v-col cols="12">
+                    <v-card>
+                      <v-card-text>
+                        <v-sheet
+                          border="dashed md"
+                          color="surface-light"
+                          height="400"
+                          rounded="lg"
+                          width="100%"
+                          class="d-flex align-center justify-center"
+                        >
+                          <div class="text-center text-grey">
+                            <v-icon size="64" class="mb-4"
+                              >mdi-folder-multiple</v-icon
+                            >
+                            <div class="text-h6">Projects Management</div>
+                            <div class="text-caption">Coming soon...</div>
+                          </div>
+                        </v-sheet>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </div>
+            </v-container>
+          </v-main>
+        </v-layout>
+
+        <!-- Snackbar for notifications -->
+        <v-snackbar
+          v-model="snackbar.show"
+          :color="snackbar.color"
+          :timeout="3000"
+        >
+          {{ snackbar.text }}
+          <template v-slot:actions>
+            <v-btn variant="text" @click="snackbar.show = false">Close</v-btn>
+          </template>
+        </v-snackbar>
+      </v-app>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.3.11/dist/vue.global.prod.js"></script>
+    <!-- Vuetify -->
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.9/dist/vuetify.min.js"></script>
+
+    <script>
+      const { createApp } = Vue;
+      const { createVuetify } = Vuetify;
+
+      const vuetify = createVuetify({
+        theme: {
+          defaultTheme: "light",
+          themes: {
+            light: {
+              colors: {
+                primary: "#667eea",
+                secondary: "#764ba2",
+              },
+            },
+            dark: {
+              colors: {
+                primary: "#667eea",
+                secondary: "#764ba2",
+              },
+            },
+          },
+        },
+      });
+
+      const app = createApp({
+        data() {
+          return {
+            drawer: false,
+            currentView: "dashboard",
+            menuItems: [
+              {
+                title: "Dashboard",
+                icon: "mdi-view-dashboard",
+                value: "dashboard",
+              },
+              { title: "Services", icon: "mdi-server", value: "services" },
+              {
+                title: "Projects",
+                icon: "mdi-folder-multiple",
+                value: "projects",
+              },
+              { title: "Logs", icon: "mdi-text-box-outline", value: "logs" },
+              { title: "Terminal", icon: "mdi-console", value: "terminal" },
+            ],
+            dashboardCards: [
+              {
+                title: "Running Containers",
+                value: "12",
+                icon: "mdi-docker",
+                color: "primary",
+              },
+              {
+                title: "Active Projects",
+                value: "3",
+                icon: "mdi-folder",
+                color: "success",
+              },
+              {
+                title: "Total Services",
+                value: "24",
+                icon: "mdi-server",
+                color: "info",
+              },
+            ],
+            systemStatus: {
+              running: true,
+              containers: 12,
+            },
+            snackbar: {
+              show: false,
+              text: "",
+              color: "success",
+            },
+          };
+        },
+        methods: {
+          toggleTheme() {
+            this.theme.global.name.value = this.theme.global.current.value.dark
+              ? "light"
+              : "dark";
+          },
+          executeCommand(command) {
+            this.snackbar.text = `Executing: stackored ${command}`;
+            this.snackbar.color = "info";
+            this.snackbar.show = true;
+
+            // TODO: API call to execute command
+            console.log(`Executing: stackored ${command}`);
+          },
+        },
+        computed: {
+          theme() {
+            return vuetify.theme;
+          },
+        },
+      });
+
+      app.use(vuetify);
+      app.mount("#app");
+    </script>
+  </body>
+</html>

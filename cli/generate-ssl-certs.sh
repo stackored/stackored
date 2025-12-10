@@ -7,21 +7,15 @@
 
 set -eo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-CERT_DIR="$ROOT_DIR/core/certs"
+# Global sabitler
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+readonly CERT_DIR="$ROOT_DIR/core/certs"
 
-# Colors
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Logger kütüphanesini yükle
+source "$SCRIPT_DIR/lib/logger.sh"
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1" >&2; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1" >&2; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
+
 
 # Check if mkcert is installed, install if not
 check_mkcert() {

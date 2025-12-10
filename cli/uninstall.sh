@@ -5,12 +5,13 @@
 # Tüm container'ları, volume'ları ve kurulumu kaldırır
 ###################################################################
 
-STACKORED_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Global sabitler
+readonly STACKORED_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+# Logger kütüphanesini yükle
+source "$(dirname "${BASH_SOURCE[0]}")/lib/logger.sh"
+
+
 
 echo -e "${RED}⚠️  STACKORED UNINSTALLER${NC}"
 echo ""

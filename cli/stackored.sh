@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 
 # Resolve symlink to get actual script path
-SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
-STACKORED_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/../.." && pwd)"
+readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+readonly STACKORED_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/../.." && pwd)"
+
+# Docker Compose dosya yolları - tek yerde tanımla
+readonly COMPOSE_FILES=(
+    -f "$STACKORED_ROOT/stackored/stackored.yml"
+    -f "$STACKORED_ROOT/stackored/docker-compose.dynamic.yml"
+    -f "$STACKORED_ROOT/stackored/docker-compose.projects.yml"
+)
+
 
 COMMAND=$1
 shift
@@ -13,63 +21,47 @@ case "$COMMAND" in
         ;;
 
     up)
-        docker compose \
-            -f "$STACKORED_ROOT/stackored/stackored.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.dynamic.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.projects.yml" \
-            up -d
+        docker compose "${COMPOSE_FILES[@]}" up -d
         ;;
 
     down)
-        docker compose \
-            -f "$STACKORED_ROOT/stackored/stackored.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.dynamic.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.projects.yml" \
-            down
+        docker compose "${COMPOSE_FILES[@]}" down
         ;;
 
     restart)
-        docker compose \
-            -f "$STACKORED_ROOT/stackored/stackored.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.dynamic.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.projects.yml" \
-            restart
+        docker compose "${COMPOSE_FILES[@]}" restart
         ;;
 
     ps)
-        docker compose \
-            -f "$STACKORED_ROOT/stackored/stackored.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.dynamic.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.projects.yml" \
-            ps
+        docker compose "${COMPOSE_FILES[@]}" ps
         ;;
 
     logs)
-        docker compose \
-            -f "$STACKORED_ROOT/stackored/stackored.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.dynamic.yml" \
-            -f "$STACKORED_ROOT/stackored/docker-compose.projects.yml" \
-            logs -f "$@"
+        docker compose "${COMPOSE_FILES[@]}" logs -f "$@"
         ;;
 
     doctor)
         bash "$STACKORED_ROOT/stackored/cli/support/doctor.sh"
         ;;
 
-    project)
-        SUBCOMMAND=$1
-        shift
-        case "$SUBCOMMAND" in
-            create)
-                php "$STACKORED_ROOT/stackored/cli/support/project-create.php" "$@"
-                ;;
-            *)
-                echo "Stackored Project Komutları:"
-                echo "  stackored project create <project-name>"
-                exit 1
-                ;;
-        esac
-        ;;
+    # TODO: project create komutu Bash ile yeniden yazılacak
+    # PHP bağımlılığı kaldırıldı
+    # project)
+    #     SUBCOMMAND=$1
+    #     shift
+    #     case "$SUBCOMMAND" in
+    #         create)
+    #             echo "Bu özellik şu anda devre dışı (PHP bağımlılığı kaldırıldı)"
+    #             echo "Manuel olarak projects/ dizininde proje oluşturabilirsiniz"
+    #             exit 1
+    #             ;;
+    #         *)
+    #             echo "Stackored Project Komutları:"
+    #             echo "  stackored project create <project-name>"
+    #             exit 1
+    #             ;;
+    #     esac
+    #     ;;
 
     *)
         echo "Stackored CLI"
@@ -82,7 +74,6 @@ case "$COMMAND" in
         echo "  stackored ps                    → çalışan servisleri listeler"
         echo "  stackored logs [srv]            → logları izler"
         echo "  stackored doctor                → sistem sağlık kontrolü"
-        echo "  stackored project create <name> → yeni proje oluşturur"
         echo ""
         exit 1
         ;;

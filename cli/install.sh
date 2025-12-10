@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 
-STACKORED_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Global sabitler
+readonly STACKORED_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# Colors
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Logger kütüphanesini yükle
+source "$(dirname "${BASH_SOURCE[0]}")/lib/logger.sh"
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+
 
 # Update /etc/hosts with stackored domains
 update_hosts_file() {
