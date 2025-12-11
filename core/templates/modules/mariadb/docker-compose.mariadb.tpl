@@ -17,6 +17,7 @@ services:
     volumes:
       - stackored-mariadb-data:/var/lib/mysql
       - ./core/generated-configs/mariadb.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+      - ./logs/mariadb:/var/log/mysql
 
     command: >
       mariadbd

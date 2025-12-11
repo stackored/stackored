@@ -18,6 +18,7 @@ services:
 
     volumes:
       - stackored-meili-data:/meili_data
+      - ./logs/meilisearch:/meili_data/logs
 
     networks:
       - "{{ DOCKER_DEFAULT_NETWORK }}"

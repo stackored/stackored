@@ -15,7 +15,7 @@ services:
 
     volumes:
       - stackored-rabbitmq-data:/var/lib/rabbitmq
-      - stackored-rabbitmq-logs:/var/log/rabbitmq
+      - ./logs/rabbitmq:/var/log/rabbitmq
 
     ports:
       - "{{ HOST_PORT_RABBITMQ | default('5672') }}:5672"
@@ -26,4 +26,3 @@ services:
 
 volumes:
   stackored-rabbitmq-data:
-  stackored-rabbitmq-logs:

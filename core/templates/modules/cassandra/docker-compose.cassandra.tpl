@@ -18,6 +18,7 @@ services:
 
     volumes:
       - stackored-cassandra-data:/var/lib/cassandra
+      - ./logs/cassandra:/var/log/cassandra
 
     ports:
       - "{{ HOST_PORT_CASSANDRA | default('9042') }}:9042"

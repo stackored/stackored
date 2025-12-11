@@ -15,6 +15,7 @@ services:
     volumes:
       - stackored-couchdb-data:/opt/couchdb/data
       - stackored-couchdb-config:/opt/couchdb/etc/local.d
+      - ./logs/couchdb:/opt/couchdb/var/log
 
     ports:
       - "{{ HOST_PORT_COUCHDB | default('5984') }}:5984"

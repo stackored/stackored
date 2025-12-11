@@ -49,7 +49,14 @@ if (!preg_match('/^[a-z0-9-]+$/', $service)) {
 }
 
 // Build docker command
-$containerName = 'stackored-' . $service;
+// Project containers don't have 'stackored-' prefix, only services do
+if (strpos($service, 'project') === 0) {
+    // Project container (e.g., project1-web, project1-php)
+    $containerName = $service;
+} else {
+    // Stackored service (e.g., mysql, redis)
+    $containerName = 'stackored-' . $service;
+}
 
 // Execute docker command directly (more reliable than docker compose)
 if ($action === 'start') {

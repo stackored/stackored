@@ -40,6 +40,9 @@ services:
       - "traefik.http.services.sentry.loadbalancer.server.port=9000"
       - "traefik.http.routers.sentry.tls=true"
 
+    volumes:
+      - ./logs/sentry:/var/log/sentry
+
     depends_on:
       - sentry-redis
       - sentry-postgres

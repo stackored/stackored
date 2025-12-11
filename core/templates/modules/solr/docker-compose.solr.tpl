@@ -26,6 +26,8 @@ services:
       - stackored-solr-data:/var/solr
       # Varsayılan veya override solr configsets
       - ./stackored-config/solr/configsets:/opt/solr/server/solr/configsets
+      # Solr logs
+      - ./logs/solr:/var/solr/logs
 
     ports:
       - "{{ HOST_PORT_SOLR | default('8983') }}:8983"

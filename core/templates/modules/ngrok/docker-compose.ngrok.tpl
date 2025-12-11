@@ -21,5 +21,8 @@ services:
     ports:
       - "{{ HOST_PORT_NGROK | default('4040') }}:4040"
 
+    volumes:
+      - ./logs/ngrok:/var/log/ngrok
+
     networks:
       - "{{ DOCKER_DEFAULT_NETWORK }}"

@@ -10,7 +10,7 @@ services:
 
     volumes:
       - ./core/templates/appserver/tomcat/webapps:/usr/local/tomcat/webapps
-      - stackored-tomcat-logs:/usr/local/tomcat/logs
+      - ./logs/tomcat:/usr/local/tomcat/logs
 
     ports:
       - "{{ HOST_PORT_TOMCAT | default('8080') }}:8080"
@@ -22,5 +22,4 @@ services:
       CATALINA_OPTS: "{{ TOMCAT_CATALINA_OPTS | default('-Xms512M -Xmx1024M') }}"
       JAVA_OPTS: "{{ TOMCAT_JAVA_OPTS | default('-Djava.awt.headless=true') }}"
 
-volumes:
-  stackored-tomcat-logs:
+

@@ -17,6 +17,7 @@ services:
     volumes:
       - stackored-mysql-data:/var/lib/mysql
       - ./core/generated-configs/mysql.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+      - ./logs/mysql:/var/log/mysql
 
     command: >
       mysqld

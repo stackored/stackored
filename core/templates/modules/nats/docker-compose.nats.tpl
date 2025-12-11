@@ -19,6 +19,9 @@ services:
       - "{{ HOST_PORT_NATS_MONITORING | default('8222') }}:8222" # Monitoring
       - "{{ HOST_PORT_NATS_CLUSTER | default('6222') }}:6222" # Clustering
 
+    volumes:
+      - ./logs/nats:/var/log/nats
+
     networks:
       - "{{ DOCKER_DEFAULT_NETWORK }}"
 

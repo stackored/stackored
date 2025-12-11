@@ -16,5 +16,8 @@ services:
     ports:
       - "{{ HOST_PORT_KAFBAT | default('8080') }}:8080"
 
+    volumes:
+      - ./logs/kafbat:/var/log/kafbat
+
     networks:
       - "{{ DOCKER_DEFAULT_NETWORK }}"

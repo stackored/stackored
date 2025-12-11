@@ -18,6 +18,7 @@ services:
     volumes:
       - stackored-percona-data:/var/lib/mysql
       - ./core/generated-configs/percona.cnf:/etc/mysql/conf.d/stackored.cnf:ro
+      - ./logs/percona:/var/log/mysql
 
     ports:
       - "{{ HOST_PORT_PERCONA | default('3307') }}:3306"
