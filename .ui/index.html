@@ -6,15 +6,9 @@
     <title>Stackored - Docker Development Environment Manager</title>
 
     <!-- Vuetify CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/vuetify@3.4.9/dist/vuetify.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.9/dist/vuetify.min.css" rel="stylesheet" />
     <!-- Material Design Icons -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/@mdi/font@7.3.67/css/materialdesignicons.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.3.67/css/materialdesignicons.min.css" rel="stylesheet" />
 
     <style>
       [v-cloak] {
@@ -23,30 +17,17 @@
       .cursor-pointer {
         cursor: pointer;
       }
-      .logo-text {
-        font-family: "Roboto", sans-serif;
-        font-weight: 700;
-        font-size: 1.5rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
     </style>
   </head>
-  <body>
-    <div id="app" v-cloak>
-      <v-app>
-        <v-layout class="rounded rounded-md">
+  <body class="h-screen">
+    <div id="app" class="h-screen" v-cloak>
+      <v-app class="h-screen">
+        <v-main class="h-screen">
+        <v-layout class="rounded-0 h-screen">
           <!-- App Bar -->
           <v-app-bar color="primary" prominent>
-            <template v-slot:prepend>
-              <v-app-bar-nav-icon
-                @click="drawer = !drawer"
-              ></v-app-bar-nav-icon>
-            </template>
 
-            <v-toolbar-title class="logo-text">
+            <v-toolbar-title>
               <v-icon icon="mdi-docker" size="large" class="mr-2"></v-icon>
               Stackored
             </v-toolbar-title>
@@ -59,30 +40,10 @@
                 'mdi-weather-night' }}</v-icon
               >
             </v-btn>
-
-            <v-btn icon>
-              <v-icon>mdi-bell-outline</v-icon>
-            </v-btn>
-
-            <v-menu>
-              <template v-slot:activator="{ props }">
-                <v-btn icon v-bind="props">
-                  <v-icon>mdi-account-circle</v-icon>
-                </v-btn>
-              </template>
-              <v-list>
-                <v-list-item>
-                  <v-list-item-title>Profile</v-list-item-title>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-title>Settings</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
           </v-app-bar>
 
           <!-- Left Navigation Drawer -->
-          <v-navigation-drawer v-model="drawer" temporary>
+          <v-navigation-drawer v-model="drawer" class="py-3 px-3 border-0">
             <v-list nav>
               <v-list-item
                 v-for="item in menuItems"
@@ -106,7 +67,7 @@
           </v-navigation-drawer>
 
           <!-- Right Navigation Drawer -->
-          <v-navigation-drawer location="right" permanent width="280">
+          <v-navigation-drawer location="right" permanent width="280" class="border-0">
             <v-list nav density="compact">
               <v-list-subheader>QUICK ACTIONS</v-list-subheader>
 
@@ -175,16 +136,10 @@
           </v-navigation-drawer>
 
           <!-- Main Content -->
-          <v-main class="d-flex align-center justify-center bg-grey-lighten-4">
+          <v-main class="d-flex align-start justify-start">
             <v-container fluid>
               <!-- Dashboard View -->
               <div v-if="currentView === 'dashboard'">
-                <v-row>
-                  <v-col cols="12">
-                    <h1 class="text-h3 mb-4">Dashboard</h1>
-                  </v-col>
-                </v-row>
-
                 <v-row>
                   <v-col
                     cols="12"
@@ -192,13 +147,22 @@
                     v-for="card in dashboardCards"
                     :key="card.title"
                   >
-                    <v-card elevation="2" hover>
-                      <v-card-text>
-                        <div class="d-flex align-center mb-4">
+                    <v-card 
+                      elevation="2" 
+                      hover 
+                      :class="card.clickable ? 'cursor-pointer' : ''"
+                      @click="card.clickable ? currentView = card.view : null"
+                    >
+                      <v-card-text style="min-height: 120px;">
+                        <v-skeleton-loader 
+                          v-if="card.loading" 
+                          type="list-item-avatar-two-line"
+                        ></v-skeleton-loader>
+                        <div v-else class="d-flex align-center mb-4">
                           <v-icon :color="card.color" size="48" class="mr-4">
                             {{ card.icon }}
                           </v-icon>
-                          <div>
+                          <div class="flex-grow-1">
                             <div class="text-h4">{{ card.value }}</div>
                             <div class="text-subtitle-1 text-grey">
                               {{ card.title }}
@@ -219,7 +183,6 @@
                       </v-card-title>
                       <v-card-text>
                         <v-sheet
-                          border="dashed md"
                           color="surface-light"
                           height="300"
                           rounded="lg"
@@ -243,29 +206,30 @@
                         <!-- Services View -->
                         <div v-if="currentView === 'services'">
                             <v-row>
-                                <v-col cols="12" class="d-flex align-center justify-space-between">
-                                    <h1 class="text-h3 mb-0">Services</h1>
-                                    <v-chip :color="runningServicesCount > 0 ? 'success' : 'error'" size="large">
-                                        {{ runningServicesCount }} / {{ services.length }} Running
-                                    </v-chip>
-                                </v-col>
-                            </v-row>
-                            
-                            <v-row class="mt-4">
                                 <v-col cols="12">
                                     <v-card>
                                         <v-card-title class="d-flex align-center">
                                             <v-icon start>mdi-server-network</v-icon>
-                                            All Services (A-Z)
+                                            Services
                                             <v-spacer></v-spacer>
+                                            <p>{{ runningServicesCount }} / {{ services.length }} Running</p>
+                                            <v-divider vertical class="ms-4 me-3"></v-divider>
                                             <v-btn
                                               icon="mdi-refresh"
-                                              variant="text"
+                                              variant="flat"
                                               :loading="servicesLoading"
                                               @click.prevent="loadServices"
                                             >
                                               <v-icon>mdi-refresh</v-icon>
                                               <v-tooltip activator="parent" location="bottom">Refresh Services</v-tooltip>
+                                            </v-btn>
+                                            <v-btn
+                                              icon="mdi-view-dashboard"
+                                              variant="flat"
+                                              @click="currentView = 'dashboard'"
+                                            >
+                                              <v-icon>mdi-view-dashboard</v-icon>
+                                              <v-tooltip activator="parent" location="bottom">Back to Dashboard</v-tooltip>
                                             </v-btn>
                                         </v-card-title>
                                         <v-divider></v-divider>
@@ -277,49 +241,38 @@
                                             :loading="servicesLoading"
                                             items-per-page="-1"
                                             class="elevation-0"
+                                            show-expand
+                                            fixed-header
+                                            v-model:expanded="expandedServices"
+                                            density="compact"
+                                            item-value="name"
+                                            height="660"
+                                            hide-default-footer
                                         >
                                             <template v-slot:top>
-                                                <v-toolbar flat>
                                                     <v-text-field
                                                         v-model="serviceSearch"
                                                         prepend-inner-icon="mdi-magnify"
                                                         label="Search services..."
+                                                        class="rounded-0"
                                                         single-line
                                                         hide-details
-                                                        density="compact"
                                                         clearable
                                                     ></v-text-field>
-                                                </v-toolbar>
                                             </template>
                                             
                                             <template v-slot:loading>
-                                                <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                                                <v-skeleton-loader type="table-row@20"></v-skeleton-loader>
                                             </template>
                                             
                                             <template v-slot:item.name="{ item }">
-                                                <div class="d-flex align-center">
-                                                    <v-avatar :color="item.running ? 'success' : (item.enabled ? 'warning' : 'grey')" size="32" class="mr-3">
-                                                        <v-icon :icon="item.icon" color="white" size="small"></v-icon>
-                                                    </v-avatar>
-                                                    <div>
-                                                        <div class="font-weight-bold">{{ item.name }}</div>
-                                                        <div class="text-caption text-grey">{{ item.description }}</div>
-                                                    </div>
+                                                <div>
+                                                    <div class="font-weight-bold">{{ item.name }}</div>
+                                                    <div class="text-caption text-grey">{{ item.description }}</div>
                                                 </div>
                                             </template>
                                             
-                                            <template v-slot:item.version="{ item }">
-                                                <v-chip size="small" variant="outlined" v-if="item.version">
-                                                    {{ item.version }}
-                                                </v-chip>
-                                            </template>
-                                            
-                                            <template v-slot:item.port="{ item }">
-                                                <span v-if="item.port">
-                                                    <v-icon size="small">mdi-lan</v-icon> {{ item.port }}
-                                                </span>
-                                                <span v-else class="text-grey">-</span>
-                                            </template>
+                                            <template v-slot:item.version="{ item }">{{ item.version }}</template>
                                             
                                             <template v-slot:item.status="{ item }">
                                                 <v-chip 
@@ -333,18 +286,158 @@
                                                 </v-chip>
                                             </template>
                                             
-                                            <template v-slot:item.actions="{ item }">
+                                            <template v-slot:item.control="{ item }">
                                                 <v-btn
-                                                    v-if="item.url"
-                                                    icon
+                                                    v-if="item.enabled && item.running"
                                                     size="small"
-                                                    variant="text"
+                                                    color="error"
+                                                    variant="tonal"
+                                                    @click="controlService(item.name, 'stop')"
+                                                    :loading="item.loading"
+                                                >
+                                                    <v-icon start>mdi-stop</v-icon>
+                                                    Stop
+                                                </v-btn>
+                                                <v-btn
+                                                    v-if="item.enabled && !item.running"
+                                                    size="small"
+                                                    color="success"
+                                                    variant="tonal"
+                                                    @click="controlService(item.name, 'start')"
+                                                    :loading="item.loading"
+                                                >
+                                                    <v-icon start>mdi-play</v-icon>
+                                                    Start
+                                                </v-btn>
+                                            </template>
+                                            
+                                            <template v-slot:item.restart="{ item }">
+                                                <v-btn
+                                                    v-if="item.enabled && item.running"
+                                                    size="small"
+                                                    color="warning"
+                                                    variant="tonal"
+                                                    @click="controlService(item.name, 'restart')"
+                                                    :loading="item.loading"
+                                                >
+                                                    <v-icon start>mdi-restart</v-icon>
+                                                    Restart
+                                                </v-btn>
+                                            </template>
+                                            
+                                            <template v-slot:item.open="{ item }">
+                                                <v-btn
+                                                    v-if="item.url && item.running"
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
                                                     :href="item.url"
                                                     target="_blank"
                                                 >
-                                                    <v-icon>mdi-open-in-new</v-icon>
+                                                    <v-icon start>mdi-open-in-new</v-icon>
+                                                    Open
                                                 </v-btn>
                                             </template>
+                                            <template v-slot:expanded-row="{ columns, item }">
+                                                <tr>
+                                                    <td :colspan="columns.length" class="pa-4">
+                                                        <v-card elevation="0" class="pa-4">
+                                                            <v-card-title class="text-h6 pa-0 mb-3">
+                                                                <v-icon start color="primary">mdi-network</v-icon>
+                                                                Network Details
+                                                            </v-card-title>
+                                                            <v-row>
+                                                                <v-col cols="12" md="6">
+                                                                    <v-list density="compact" class="bg-transparent">
+                                                                        <v-list-item>
+                                                                            <v-list-item-title class="text-caption text-grey">Container Name</v-list-item-title>
+                                                                            <v-list-item-subtitle class="text-body-2 font-weight-bold">
+                                                                                <v-chip size="small" variant="tonal" color="primary">
+                                                                                    <v-icon start size="small">mdi-docker</v-icon>
+                                                                                    stackored-{{ item.name }}
+                                                                                </v-chip>
+                                                                            </v-list-item-subtitle>
+                                                                        </v-list-item>
+                                                                        <v-list-item v-if="item.ports && item.ports.ip_address">
+                                                                            <v-list-item-title class="text-caption text-grey">Internal IP Address</v-list-item-title>
+                                                                            <v-list-item-subtitle class="text-body-2 font-weight-bold">
+                                                                                <v-chip size="small" variant="tonal" color="success">
+                                                                                    <v-icon start size="small">mdi-ip</v-icon>
+                                                                                    {{ item.ports.ip_address }}
+                                                                                </v-chip>
+                                                                            </v-list-item-subtitle>
+                                                                        </v-list-item>
+                                                                        <v-list-item v-if="item.ports && item.ports.network">
+                                                                            <v-list-item-title class="text-caption text-grey">Docker Network</v-list-item-title>
+                                                                            <v-list-item-subtitle class="text-body-2 font-weight-bold">
+                                                                                <v-chip size="small" variant="tonal" color="info">
+                                                                                    <v-icon start size="small">mdi-lan</v-icon>
+                                                                                    {{ item.ports.network }}
+                                                                                </v-chip>
+                                                                            </v-list-item-subtitle>
+                                                                        </v-list-item>
+                                                                        <v-list-item v-if="item.ports && item.ports.gateway">
+                                                                            <v-list-item-title class="text-caption text-grey">Gateway</v-list-item-title>
+                                                                            <v-list-item-subtitle class="text-body-2 font-weight-bold">
+                                                                                <v-chip size="small" variant="tonal" color="warning">
+                                                                                    <v-icon start size="small">mdi-router-network</v-icon>
+                                                                                    {{ item.ports.gateway }}
+                                                                                </v-chip>
+                                                                            </v-list-item-subtitle>
+                                                                        </v-list-item>
+                                                                    </v-list>
+                                                                </v-col>
+                                                                <v-col cols="12" md="6">
+                                                                    <v-list density="compact" class="bg-transparent">
+                                                                        <v-list-item v-if="item.url">
+                                                                            <v-list-item-title class="text-caption text-grey">Service URL</v-list-item-title>
+                                                                            <v-list-item-subtitle class="text-body-2">
+                                                                                <a :href="item.url" target="_blank" class="text-decoration-none">
+                                                                                    <v-chip size="small" variant="tonal" color="primary">
+                                                                                        <v-icon start size="small">mdi-web</v-icon>
+                                                                                        {{ item.url }}
+                                                                                    </v-chip>
+                                                                                </a>
+                                                                            </v-list-item-subtitle>
+                                                                        </v-list-item>
+                                                                        <v-list-item v-if="item.ports && item.ports.ports && Object.keys(item.ports.ports).length > 0">
+                                                                            <v-list-item-title class="text-caption text-grey mb-2">Port Mappings</v-list-item-title>
+                                                                            <v-list-item-subtitle>
+                                                                                <v-chip
+                                                                                    v-for="(portInfo, dockerPort) in item.ports.ports"
+                                                                                    :key="dockerPort"
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                    :color="portInfo.exposed ? 'success' : 'grey'"
+                                                                                    class="mr-2 mb-2"
+                                                                                >
+                                                                                    <v-icon start size="small">{{ portInfo.exposed ? 'mdi-check-network' : 'mdi-lan-disconnect' }}</v-icon>
+                                                                                    {{ portInfo.docker_port }}
+                                                                                    <span v-if="portInfo.exposed">
+                                                                                        → {{ portInfo.host_ip }}:{{ portInfo.host_port }}
+                                                                                    </span>
+                                                                                    <span v-else class="text-grey ml-1">(internal)</span>
+                                                                                </v-chip>
+                                                                            </v-list-item-subtitle>
+                                                                        </v-list-item>
+                                                                        <v-list-item v-else-if="item.port">
+                                                                            <v-list-item-title class="text-caption text-grey">Port</v-list-item-title>
+                                                                            <v-list-item-subtitle class="text-body-2 font-weight-bold">
+                                                                                <v-chip size="small" variant="tonal" color="info">
+                                                                                    <v-icon start size="small">mdi-ethernet</v-icon>
+                                                                                    {{ item.port }}
+                                                                                </v-chip>
+                                                                            </v-list-item-subtitle>
+                                                                        </v-list-item>
+                                                                    </v-list>
+                                                                </v-col>
+                                                            </v-row>
+                                                        </v-card>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                            
+                                            <template v-slot:bottom></template>
                                         </v-data-table>
                                     </v-card>
                                 </v-col>
@@ -354,29 +447,30 @@
               <!-- Projects View -->
               <div v-if="currentView === 'projects'">
                 <v-row>
-                  <v-col cols="12" class="d-flex align-center justify-space-between">
-                    <h1 class="text-h3 mb-0">Projects</h1>
-                    <v-chip color="primary" size="large">
-                      {{ projects.length }} {{ projects.length === 1 ? 'Project' : 'Projects' }}
-                    </v-chip>
-                  </v-col>
-                </v-row>
-
-                <v-row class="mt-4">
                   <v-col cols="12">
                     <v-card>
                       <v-card-title class="d-flex align-center">
                         <v-icon start>mdi-folder-multiple</v-icon>
-                        All Projects (A-Z)
+                        Projects
                         <v-spacer></v-spacer>
+                        <p>{{ projects.length }} {{ projects.length === 1 ? 'Project' : 'Projects' }}</p>
+                        <v-divider vertical class="mx-2"></v-divider>
                         <v-btn
                           icon="mdi-refresh"
-                          variant="text"
+                          variant="flat"
                           :loading="projectsLoading"
                           @click.prevent="loadProjects"
                         >
                           <v-icon>mdi-refresh</v-icon>
                           <v-tooltip activator="parent" location="bottom">Refresh Projects</v-tooltip>
+                        </v-btn>
+                        <v-btn
+                          icon="mdi-view-dashboard"
+                          variant="flat"
+                          @click="currentView = 'dashboard'"
+                        >
+                          <v-icon>mdi-view-dashboard</v-icon>
+                          <v-tooltip activator="parent" location="bottom">Back to Dashboard</v-tooltip>
                         </v-btn>
                       </v-card-title>
                       <v-divider></v-divider>
@@ -388,23 +482,25 @@
                         :loading="projectsLoading"
                         items-per-page="-1"
                         class="elevation-0"
+                        fixed-header
+                        density="compact"
+                        item-value="name"
+                        height="660"
+                        hide-default-footer
                       >
                         <template v-slot:top>
-                          <v-toolbar flat>
                             <v-text-field
                               v-model="projectSearch"
                               prepend-inner-icon="mdi-magnify"
                               label="Search projects..."
                               single-line
                               hide-details
-                              density="compact"
                               clearable
                             ></v-text-field>
-                          </v-toolbar>
                         </template>
 
                         <template v-slot:loading>
-                          <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+                          <v-skeleton-loader type="table-row@30"></v-skeleton-loader>
                         </template>
 
                         <template v-slot:item.name="{ item }">
@@ -415,32 +511,38 @@
                         </template>
 
                         <template v-slot:item.domain="{ item }">
-                          <div v-if="item.domain">
+                          <div v-if="item.domain" class="d-flex align-center">
                             <a :href="'https://' + item.domain" target="_blank" class="text-decoration-none">
                               <v-icon size="small">mdi-web</v-icon> {{ item.domain }}
                             </a>
+                            <v-tooltip v-if="!item.dns_configured" location="top">
+                              <template v-slot:activator="{ props }">
+                                <v-icon 
+                                  v-bind="props" 
+                                  color="warning" 
+                                  size="small" 
+                                  class="ml-2"
+                                >
+                                  mdi-alert-circle
+                                </v-icon>
+                              </template>
+                              <div class="text-caption">
+                                <strong>No Host DNS record found.</strong><br>
+                                Add the following to /etc/hosts:<br>
+                                <code class="bg-grey-darken-3 pa-1">127.0.0.1 {{ item.domain }}</code>
+                              </div>
+                            </v-tooltip>
                           </div>
                           <span v-else class="text-grey">-</span>
                         </template>
 
                         <template v-slot:item.runtime="{ item }">
-                          <v-chip v-if="item.php && item.php.version" size="small" color="success" variant="tonal">
-                            <v-icon start size="small">mdi-language-php</v-icon>
+                            <v-icon start>mdi-language-php</v-icon>
                             PHP {{ item.php.version }}
-                          </v-chip>
-                          <span v-else class="text-grey">-</span>
                         </template>
 
                         <template v-slot:item.webserver="{ item }">
-                          <div v-if="item.webserver">
-                            <v-chip size="small" variant="outlined" color="info">
-                              <v-icon start size="small">
-                                {{ item.webserver === 'nginx' ? 'mdi-server' : 'mdi-apache' }}
-                              </v-icon>
-                              {{ item.webserver }}
-                            </v-chip>
-                          </div>
-                          <span v-else class="text-grey">-</span>
+                          {{ item.webserver }}
                         </template>
 
                         <template v-slot:item.document_root="{ item }">
@@ -448,58 +550,60 @@
                           <span v-else class="text-grey">-</span>
                         </template>
 
-                        <template v-slot:item.actions="{ item }">
-                          <div class="d-flex gap-2 justify-center">
-                            <v-btn
-                              v-if="!item.error && item.running"
-                              size="small"
-                              color="error"
-                              variant="tonal"
-                              @click="controlProjectContainer(item.name, 'stop')"
-                              :loading="item.loading"
-                            >
-                              <v-icon start>mdi-stop</v-icon>
-                              Stop
-                            </v-btn>
-                            <v-btn
-                              v-if="!item.error && !item.running"
-                              size="small"
-                              color="success"
-                              variant="tonal"
-                              @click="controlProjectContainer(item.name, 'start')"
-                              :loading="item.loading"
-                            >
-                              <v-icon start>mdi-play</v-icon>
-                              Start
-                            </v-btn>
-                            <v-btn
-                              v-if="!item.error && item.running"
-                              size="small"
-                              color="warning"
-                              variant="tonal"
-                              @click="controlProjectContainer(item.name, 'restart')"
-                              :loading="item.loading"
-                            >
-                              <v-icon start>mdi-restart</v-icon>
-                              Restart
-                            </v-btn>
-                            <v-btn
-                              v-if="!item.error && item.domain && item.running"
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                              :href="'https://' + item.domain"
-                              target="_blank"
-                            >
-                              <v-icon start>mdi-open-in-new</v-icon>
-                              Open
-                            </v-btn>
-                            <v-btn v-if="item.error" size="small" disabled>
-                              <v-icon start>mdi-alert</v-icon>
-                              Error
-                            </v-btn>
-                          </div>
+                        <template v-slot:item.control="{ item }">
+                          <v-btn
+                            v-if="!item.error && item.running"
+                            size="small"
+                            color="error"
+                            variant="tonal"
+                            @click="controlProjectContainer(item.name, 'stop')"
+                            :loading="item.loading"
+                          >
+                            <v-icon start>mdi-stop</v-icon>
+                            Stop
+                          </v-btn>
+                          <v-btn
+                            v-if="!item.error && !item.running"
+                            size="small"
+                            color="success"
+                            variant="tonal"
+                            @click="controlProjectContainer(item.name, 'start')"
+                            :loading="item.loading"
+                          >
+                            <v-icon start>mdi-play</v-icon>
+                            Start
+                          </v-btn>
                         </template>
+
+                        <template v-slot:item.restart="{ item }">
+                          <v-btn
+                            v-if="!item.error && item.running"
+                            size="small"
+                            color="warning"
+                            variant="tonal"
+                            @click="controlProjectContainer(item.name, 'restart')"
+                            :loading="item.loading"
+                          >
+                            <v-icon start>mdi-restart</v-icon>
+                            Restart
+                          </v-btn>
+                        </template>
+
+                        <template v-slot:item.open="{ item }">
+                          <v-btn
+                            v-if="!item.error && item.domain && item.running"
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            :href="'https://' + item.domain"
+                            target="_blank"
+                          >
+                            <v-icon start>mdi-open-in-new</v-icon>
+                            Open
+                          </v-btn>
+                        </template>
+                        
+                        <template v-slot:bottom></template>
                       </v-data-table>
                     </v-card>
                   </v-col>
@@ -520,6 +624,7 @@
             <v-btn variant="text" @click="snackbar.show = false">Close</v-btn>
           </template>
         </v-snackbar>
+        </v-main>
       </v-app>
     </div>
 
@@ -533,37 +638,22 @@
       const { createVuetify } = Vuetify;
 
       const vuetify = createVuetify({
-        theme: {
-          defaultTheme: "light",
-          themes: {
-            light: {
-              colors: {
-                primary: "#667eea",
-                secondary: "#764ba2",
-              },
-            },
-            dark: {
-              colors: {
-                primary: "#667eea",
-                secondary: "#764ba2",
-              },
-            },
-          },
-        },
+        theme: {},
       });
 
         const app = createApp({
             data() {
                 return {
-                    drawer: false,
+                    drawer: true,
                     currentView: 'dashboard',
                     serviceSearch: '',
                     serviceHeaders: [
                         { title: 'Service', key: 'name', sortable: true },
-                        { title: 'Version', key: 'version', sortable: true, align: 'center' },
-                        { title: 'Port', key: 'port', sortable: true, align: 'center' },
-                        { title: 'Status', key: 'status', sortable: true, align: 'center' },
-                        { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
+                        { title: 'Version', key: 'version', sortable: true, align: 'right', width: '100' },
+                        { title: 'Open', key: 'open', sortable: false, align: 'center', width: '100' },
+                        { title: 'Stop/Start', key: 'control', sortable: false, align: 'center', width: '100' },
+                        { title: 'Restart', key: 'restart', sortable: false, align: 'center', width: '100' },
+                        { title: 'Status', key: 'status', sortable: true, align: 'center', width: '100' },  
                     ],
                     menuItems: [
                         { title: 'Dashboard', icon: 'mdi-view-dashboard', value: 'dashboard' },
@@ -573,12 +663,14 @@
                         { title: 'Terminal', icon: 'mdi-console', value: 'terminal' },
                     ],
                     projectHeaders: [
-                        { title: "Project", key: "name", sortable: true },
-                        { title: "Domain", key: "domain", sortable: true },
-                        { title: "Runtime", key: "runtime", sortable: true, align: "center" },
-                        { title: "Web Server", key: "webserver", sortable: true, align: "center" },
-                        { title: "Document Root", key: "document_root", sortable: true, align: "center" },
-                        { title: "Actions", key: "actions", sortable: false, align: "center", width: "150" },
+                        { title: "Project", key: "name", sortable: true, align: "left" },
+                        { title: "Domain", key: "domain", sortable: true, align: "left" },
+                        { title: "Runtime", key: "runtime", sortable: true, align: "left" },
+                        { title: "Web Server", key: "webserver", sortable: true, align: "left" },
+                        { title: "Document Root", key: "document_root", sortable: true, align: "left" },
+                        { title: "Stop/Start", key: "control", sortable: false, align: "center", width: "120" },
+                        { title: "Restart", key: "restart", sortable: false, align: "center", width: "120" },
+                        { title: "Open", key: "open", sortable: false, align: "center", width: "120" },
                     ],
                     projectSearch: "",
                     projects: [],
@@ -638,7 +730,8 @@
                     },
                     servicesLoading: false,
                     projectsLoading: false,
-                    commandLoading: false
+                    commandLoading: false,
+                    expandedServices: []
                 }
             },
             mounted() {
@@ -798,6 +891,52 @@
               }
             }
           },
+          async controlService(serviceName, action) {
+            // Find service and set loading state
+            const service = this.services.find((s) => s.name === serviceName);
+            if (service) {
+              service.loading = true;
+            }
+
+            try {
+              // Convert service name to container name format (lowercase, no spaces)
+              const containerName = serviceName.toLowerCase().replace(/\s+/g, '-');
+              
+              const response = await fetch("/control.php", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ service: containerName, action: action }),
+              });
+
+              const data = await response.json();
+
+              if (data.success) {
+                this.snackbar.text = `Service ${serviceName} ${action}ed successfully`;
+                this.snackbar.color = "success";
+                this.snackbar.show = true;
+
+                // Reload services to update status
+                setTimeout(() => {
+                  this.loadServices();
+                }, 1000);
+              } else {
+                this.snackbar.text = `Failed to ${action} service ${serviceName}`;
+                this.snackbar.color = "error";
+                this.snackbar.show = true;
+              }
+            } catch (error) {
+              console.error("Error controlling service:", error);
+              this.snackbar.text = "Error: " + error.message;
+              this.snackbar.color = "error";
+              this.snackbar.show = true;
+            } finally {
+              if (service) {
+                service.loading = false;
+              }
+            }
+          },
         },
         computed: {
           theme() {
@@ -823,18 +962,26 @@
                 value: this.runningServicesCount.toString(),
                 icon: "mdi-docker",
                 color: "primary",
+                clickable: false,
+                loading: this.servicesLoading,
               },
               {
                 title: "Active Projects",
                 value: this.projects.length.toString(),
                 icon: "mdi-folder",
                 color: "success",
+                clickable: true,
+                view: "projects",
+                loading: this.projectsLoading,
               },
               {
                 title: "Total Services",
                 value: this.services.length.toString(),
                 icon: "mdi-server",
                 color: "info",
+                clickable: true,
+                view: "services",
+                loading: this.servicesLoading,
               },
             ];
           }
