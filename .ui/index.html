@@ -33,62 +33,35 @@
             </v-toolbar-title>
 
             <v-tabs v-model="currentView" color="white">
-              <v-tab
-                v-for="item in menuItems"
-                :key="item.value"
-                :value="item.value"
-              >
+              <v-tab v-for="item in menuItems" :key="item.value" :value="item.value">
                 <v-icon start>{{ item.icon }}</v-icon>
                 {{ item.title }}
               </v-tab>
             </v-tabs>
 
             <v-btn icon @click="toggleTheme">
-              <v-icon
-                >{{ theme.global.current.value.dark ? 'mdi-weather-sunny' :
-                'mdi-weather-night' }}</v-icon
-              >
+              <v-icon >{{ theme.global.current.value.dark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
             </v-btn>
           </v-app-bar>
-
-
 
           <!-- Right Navigation Drawer -->
           <v-navigation-drawer location="right" permanent width="280" class="border-0">
             <v-list nav density="compact">
               <v-list-subheader>QUICK ACTIONS</v-list-subheader>
 
-              <v-list-item
-                prepend-icon="mdi-play-circle"
-                title="Start All"
-                subtitle="stackored up"
-                @click="executeCommand('up')"
-                :disabled="commandLoading"
-              >
+              <v-list-item prepend-icon="mdi-play-circle" title="Start All" subtitle="stackored up" @click="executeCommand('up')" :disabled="commandLoading">
                 <template v-slot:append v-if="commandLoading">
                   <v-progress-circular indeterminate size="20"></v-progress-circular>
                 </template>
               </v-list-item>
 
-              <v-list-item
-                prepend-icon="mdi-stop-circle"
-                title="Stop All"
-                subtitle="stackored down"
-                @click="executeCommand('down')"
-                :disabled="commandLoading"
-              >
+              <v-list-item prepend-icon="mdi-stop-circle" title="Stop All" subtitle="stackored down" @click="executeCommand('down')" :disabled="commandLoading">
                 <template v-slot:append v-if="commandLoading">
                   <v-progress-circular indeterminate size="20"></v-progress-circular>
                 </template>
               </v-list-item>
 
-              <v-list-item
-                prepend-icon="mdi-restart"
-                title="Restart"
-                subtitle="stackored restart"
-                @click="executeCommand('restart')"
-                :disabled="commandLoading"
-              >
+              <v-list-item prepend-icon="mdi-restart" title="Restart" subtitle="stackored restart" @click="executeCommand('restart')" :disabled="commandLoading">
                 <template v-slot:append v-if="commandLoading">
                   <v-progress-circular indeterminate size="20"></v-progress-circular>
                 </template>
@@ -100,14 +73,10 @@
 
               <v-list-item>
                 <template v-slot:prepend>
-                  <v-icon :color="systemStatus.running ? 'success' : 'error'">
-                    mdi-circle
-                  </v-icon>
+                  <v-icon :color="systemStatus.running ? 'success' : 'error'">mdi-circle</v-icon>
                 </template>
                 <v-list-item-title>Docker</v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ systemStatus.running ? 'Running' : 'Stopped' }}
-                </v-list-item-subtitle>
+                <v-list-item-subtitle>{{ systemStatus.running ? 'Running' : 'Stopped' }}</v-list-item-subtitle>
               </v-list-item>
 
               <v-list-item>
@@ -115,9 +84,7 @@
                   <v-icon color="info">mdi-memory</v-icon>
                 </template>
                 <v-list-item-title>Containers</v-list-item-title>
-                <v-list-item-subtitle
-                  >{{ runningServicesCount }} active</v-list-item-subtitle
-                >
+                <v-list-item-subtitle>{{ runningServicesCount }} active</v-list-item-subtitle>
               </v-list-item>
             </v-list>
           </v-navigation-drawer>
@@ -128,33 +95,15 @@
               <!-- Dashboard View -->
               <div v-if="currentView === 'dashboard'">
                 <v-row>
-                  <v-col
-                    cols="12"
-                    md="4"
-                    v-for="card in dashboardCards"
-                    :key="card.title"
-                  >
-                    <v-card 
-                      rounded="0"
-                      elevation="0"
-                      hover 
-                      :class="card.clickable ? 'cursor-pointer' : ''"
-                      @click="card.clickable ? currentView = card.view : null"
-                    >
+                  <v-col cols="12" md="4" v-for="card in dashboardCards" :key="card.title">
+                    <v-card rounded="0" elevation="0" hover :class="card.clickable ? 'cursor-pointer' : ''" @click="card.clickable ? currentView = card.view : null">
                       <v-card-text style="min-height: 120px;">
-                        <v-skeleton-loader 
-                          v-if="card.loading" 
-                          type="list-item-avatar-two-line"
-                        ></v-skeleton-loader>
+                        <v-skeleton-loader v-if="card.loading" type="list-item-avatar-two-line"></v-skeleton-loader>
                         <div v-else class="d-flex align-center mb-4">
-                          <v-icon :color="card.color" size="48" class="mr-4">
-                            {{ card.icon }}
-                          </v-icon>
+                          <v-icon :color="card.color" size="48" class="mr-4">{{ card.icon }}</v-icon>
                           <div class="flex-grow-1">
                             <div class="text-h4">{{ card.value }}</div>
-                            <div class="text-subtitle-1 text-grey">
-                              {{ card.title }}
-                            </div>
+                            <div class="text-subtitle-1 text-grey">{{ card.title }}</div>
                           </div>
                         </div>
                       </v-card-text>
@@ -164,26 +113,15 @@
 
                 <v-row class="mt-4">
                   <v-col cols="12">
-                    <v-card
-                      rounded="0"
-                      elevation="0"
-                      >
+                    <v-card rounded="0" elevation="0">
                       <v-card-title>
                         <v-icon start>mdi-chart-line</v-icon>
                         Recent Activity
                       </v-card-title>
                       <v-card-text>
-                        <v-sheet
-                          color="surface-light"
-                          height="300"
-                          rounded="lg"
-                          width="100%"
-                          class="d-flex align-center justify-center"
-                        >
+                        <v-sheet color="surface-light" height="300" rounded="lg" width="100%" class="d-flex align-center justify-center">
                           <div class="text-center text-grey">
-                            <v-icon size="64" class="mb-4"
-                              >mdi-chart-timeline-variant</v-icon
-                            >
+                            <v-icon size="64" class="mb-4">mdi-chart-timeline-variant</v-icon>
                             <div class="text-h6">Activity Chart</div>
                             <div class="text-caption">Coming soon...</div>
                           </div>
@@ -203,20 +141,11 @@
                                             <v-spacer></v-spacer>
                                             <p>{{ runningServicesCount }} / {{ services.length }} Running</p>
                                             <v-divider vertical class="ms-4 me-3"></v-divider>
-                                            <v-btn
-                                              icon="mdi-refresh"
-                                              variant="flat"
-                                              :loading="servicesLoading"
-                                              @click.prevent="loadServices"
-                                            >
+                                            <v-btn icon="mdi-refresh" variant="flat" :loading="servicesLoading" @click.prevent="loadServices">
                                               <v-icon>mdi-refresh</v-icon>
                                               <v-tooltip activator="parent" location="bottom">Refresh Services</v-tooltip>
                                             </v-btn>
-                                            <v-btn
-                                              icon="mdi-view-dashboard"
-                                              variant="flat"
-                                              @click="currentView = 'dashboard'"
-                                            >
+                                            <v-btn icon="mdi-view-dashboard" variant="flat" @click="currentView = 'dashboard'">
                                               <v-icon>mdi-view-dashboard</v-icon>
                                               <v-tooltip activator="parent" location="bottom">Back to Dashboard</v-tooltip>
                                             </v-btn>
@@ -224,38 +153,13 @@
                                         <v-divider></v-divider>
                                         
                                         <v-card-text class="pa-0">
-                                            <v-text-field
-                                                v-model="serviceSearch"
-                                                prepend-inner-icon="mdi-magnify"
-                                                label="Search services..."
-                                                class="rounded-0"
-                                                single-line
-                                                hide-details
-                                                clearable
-                                            ></v-text-field>
+                                            <v-text-field v-model="serviceSearch" prepend-inner-icon="mdi-magnify" label="Search services..." class="rounded-0" single-line hide-details clearable></v-text-field>
                                         </v-card-text>
                                         
-                                        <v-data-table
-                                            :headers="serviceHeaders"
-                                            :items="services"
-                                            :search="serviceSearch"
-                                            :loading="servicesLoading"
-                                            items-per-page="-1"
-                                            class="elevation-0"
-                                            show-expand
-                                            fixed-header
-                                            v-model:expanded="expandedServices"
-                                            density="compact"
-                                            item-value="name"
-                                            striped="even"
-                                            hide-default-footer
-                                            style="height: calc(100vh - 215px)"
-                                        >
-                                            
+                                        <v-data-table :headers="serviceHeaders" :items="services" :search="serviceSearch" :loading="servicesLoading" items-per-page="-1" class="elevation-0" show-expand fixed-header v-model:expanded="expandedServices" density="compact" item-value="name" striped="even" hide-default-footer style="height: calc(100vh - 215px)">
                                             <template v-slot:loading>
                                                 <v-skeleton-loader type="table-row@20"></v-skeleton-loader>
                                             </template>
-                                            
                                             <template v-slot:item.name="{ item }">
                                                 <div class="d-flex align-center">
                                                     <div>
@@ -264,14 +168,7 @@
                                                     </div>
                                                     <v-tooltip v-if="item.url && !item.dns_configured" location="top">
                                                         <template v-slot:activator="{ props }">
-                                                            <v-icon 
-                                                                v-bind="props" 
-                                                                color="warning" 
-                                                                size="small" 
-                                                                class="ml-2"
-                                                            >
-                                                                mdi-alert-circle
-                                                            </v-icon>
+                                                            <v-icon v-bind="props" color="warning" size="small" class="ml-2">mdi-alert-circle</v-icon>
                                                         </template>
                                                         <div class="text-caption">
                                                             <strong>No Host DNS record found.</strong><br>
@@ -281,7 +178,6 @@
                                                     </v-tooltip>
                                                 </div>
                                             </template>
-                                            
                                             <template v-slot:item.container_name="{ item }">
                                                 <v-chip size="small" variant="tonal" color="grey">
                                                     <v-icon start size="small">mdi-docker</v-icon>
@@ -292,68 +188,23 @@
                                             <template v-slot:item.version="{ item }">{{ item.version }}</template>
                                             
                                             <template v-slot:item.status="{ item }">
-                                                <v-chip 
-                                                    :color="item.running ? 'success' : (item.enabled ? 'warning' : 'grey')"
-                                                    size="small"
-                                                >
-                                                    <v-icon start size="small">
-                                                        {{ item.running ? 'mdi-check-circle' : (item.enabled ? 'mdi-pause-circle' : 'mdi-close-circle') }}
-                                                    </v-icon>
+                                                <v-chip :color="item.running ? 'success' : (item.enabled ? 'warning' : 'grey')" size="small">
+                                                    <v-icon start size="small">{{ item.running ? 'mdi-check-circle' : (item.enabled ? 'mdi-pause-circle' : 'mdi-close-circle') }}</v-icon>
                                                     {{ item.running ? 'Running' : (item.enabled ? 'Enabled' : 'Disabled') }}
                                                 </v-chip>
                                             </template>
                                             
                                             <template v-slot:item.control="{ item }">
-                                                <v-btn
-                                                    v-if="item.enabled && item.running"
-                                                    size="small"
-                                                    color="error"
-                                                    variant="tonal"
-                                                    @click="controlService(item.name, 'stop')"
-                                                    :loading="item.loading"
-                                                >
-                                                    <v-icon start>mdi-stop</v-icon>
-                                                    Stop
-                                                </v-btn>
-                                                <v-btn
-                                                    v-if="item.enabled && !item.running"
-                                                    size="small"
-                                                    color="success"
-                                                    variant="tonal"
-                                                    @click="controlService(item.name, 'start')"
-                                                    :loading="item.loading"
-                                                >
-                                                    <v-icon start>mdi-play</v-icon>
-                                                    Start
-                                                </v-btn>
+                                                <v-btn v-if="item.enabled && item.running" size="small" color="error" variant="tonal" @click="controlService(item.name, 'stop')" :loading="item.loading"><v-icon start>mdi-stop</v-icon>Stop</v-btn>
+                                                <v-btn v-if="item.enabled && !item.running" size="small" color="success" variant="tonal" @click="controlService(item.name, 'start')" :loading="item.loading"><v-icon start>mdi-play</v-icon>Start</v-btn>
                                             </template>
                                             
                                             <template v-slot:item.restart="{ item }">
-                                                <v-btn
-                                                    v-if="item.enabled && item.running"
-                                                    size="small"
-                                                    color="warning"
-                                                    variant="tonal"
-                                                    @click="controlService(item.name, 'restart')"
-                                                    :loading="item.loading"
-                                                >
-                                                    <v-icon start>mdi-restart</v-icon>
-                                                    Restart
-                                                </v-btn>
+                                                <v-btn v-if="item.enabled && item.running" size="small" color="warning" variant="tonal" @click="controlService(item.name, 'restart')" :loading="item.loading"><v-icon start>mdi-restart</v-icon>Restart</v-btn>
                                             </template>
                                             
                                             <template v-slot:item.open="{ item }">
-                                                <v-btn
-                                                    v-if="item.url && item.running"
-                                                    size="small"
-                                                    color="primary"
-                                                    variant="outlined"
-                                                    :href="item.url"
-                                                    target="_blank"
-                                                >
-                                                    <v-icon start>mdi-open-in-new</v-icon>
-                                                    Open
-                                                </v-btn>
+                                                <v-btn v-if="item.url && item.running" size="small" color="primary" variant="outlined" :href="item.url" target="_blank"><v-icon start>mdi-open-in-new</v-icon>Open</v-btn>
                                             </template>
                                             <template v-slot:expanded-row="{ columns, item }">
                                                 <tr>
@@ -434,21 +285,7 @@
                                                                             <v-list-item v-if="item.ports && item.ports.ports && Object.keys(item.ports.ports).length > 0">
                                                                                 <v-list-item-title class="text-caption text-grey mb-2">Port Mappings</v-list-item-title>
                                                                                 <v-list-item-subtitle>
-                                                                                    <v-chip
-                                                                                        v-for="(portInfo, dockerPort) in item.ports.ports"
-                                                                                        :key="dockerPort"
-                                                                                        size="small"
-                                                                                        variant="outlined"
-                                                                                        :color="portInfo.exposed ? 'success' : 'grey'"
-                                                                                        class="mr-2 mb-2"
-                                                                                    >
-                                                                                        <v-icon start size="small">{{ portInfo.exposed ? 'mdi-check-network' : 'mdi-lan-disconnect' }}</v-icon>
-                                                                                        {{ portInfo.docker_port }}
-                                                                                        <span v-if="portInfo.exposed">
-                                                                                            → {{ portInfo.host_ip }}:{{ portInfo.host_port }}
-                                                                                        </span>
-                                                                                        <span v-else class="text-grey ml-1">(internal)</span>
-                                                                                    </v-chip>
+                                                                                    <v-chip v-for="(portInfo, dockerPort) in item.ports.ports" :key="dockerPort" size="small" variant="outlined" :color="portInfo.exposed ? 'success' : 'grey'" class="mr-2 mb-2"><v-icon start size="small">{{ portInfo.exposed ? 'mdi-check-network' : 'mdi-lan-disconnect' }}</v-icon>{{ portInfo.docker_port }}<span v-if="portInfo.exposed">→ {{ portInfo.host_ip }}:{{ portInfo.host_port }}</span><span v-else class="text-grey ml-1">(internal)</span></v-chip>
                                                                                 </v-list-item-subtitle>
                                                                             </v-list-item>
                                                                             <v-list-item v-else-if="item.port">
@@ -528,36 +365,13 @@
                         <v-spacer></v-spacer>
                         <p>{{ projects.length }} {{ projects.length === 1 ? 'Project' : 'Projects' }}</p>
                         <v-divider vertical class="mx-2"></v-divider>
-                        <v-btn
-                          icon="mdi-refresh"
-                          variant="flat"
-                          :loading="projectsLoading"
-                          @click.prevent="loadProjects"
-                        >
-                          <v-icon>mdi-refresh</v-icon>
-                          <v-tooltip activator="parent" location="bottom">Refresh Projects</v-tooltip>
-                        </v-btn>
-                        <v-btn
-                          icon="mdi-view-dashboard"
-                          variant="flat"
-                          @click="currentView = 'dashboard'"
-                        >
-                          <v-icon>mdi-view-dashboard</v-icon>
-                          <v-tooltip activator="parent" location="bottom">Back to Dashboard</v-tooltip>
-                        </v-btn>
+                        <v-btn icon="mdi-refresh" variant="flat" :loading="projectsLoading" @click.prevent="loadProjects"><v-icon>mdi-refresh</v-icon><v-tooltip activator="parent" location="bottom">Refresh Projects</v-tooltip></v-btn>
+                        <v-btn icon="mdi-view-dashboard" variant="flat" @click="currentView = 'dashboard'"><v-icon>mdi-view-dashboard</v-icon><v-tooltip activator="parent" location="bottom">Back to Dashboard</v-tooltip></v-btn>
                       </v-card-title>
                       <v-divider></v-divider>
 
                       <v-card-text class="pa-0">
-                        <v-text-field
-                          v-model="projectSearch"
-                          prepend-inner-icon="mdi-magnify"
-                          label="Search projects..."
-                          class="rounded-0"
-                          single-line
-                          hide-details
-                          clearable
-                        ></v-text-field>
+                        <v-text-field v-model="projectSearch" prepend-inner-icon="mdi-magnify" label="Search projects..." class="rounded-0" single-line hide-details clearable></v-text-field>
                       </v-card-text>
 
                       <v-data-table
@@ -1094,6 +908,12 @@
                 }
             },
             mounted() {
+                // Load saved theme preference from localStorage
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    this.theme.global.name.value = savedTheme;
+                }
+                
                 // Load services and projects from API
                 this.loadServices();
                 this.loadProjects();
@@ -1124,9 +944,10 @@
             }
           },
           toggleTheme() {
-            this.theme.global.name.value = this.theme.global.current.value.dark
-              ? "light"
-              : "dark";
+            const newTheme = this.theme.global.current.value.dark ? "light" : "dark";
+            this.theme.global.name.value = newTheme;
+            // Save theme preference to localStorage
+            localStorage.setItem('theme', newTheme);
           },
           async executeCommand(command) {
             this.commandLoading = true;
