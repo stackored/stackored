@@ -78,6 +78,7 @@ generate_projects() {
     
     volumes:
       - ${project_path}:/var/www/html
+      - ${ROOT_DIR}/logs/projects/${project_name}:/var/log/${project_name}
 EOF
         
         # Add custom PHP config if exists
@@ -125,6 +126,7 @@ EOF
     
     volumes:
       - ${project_path}:/var/www/html
+      - ${ROOT_DIR}/logs/projects/${project_name}:/var/log/nginx
 EOF
             
             # Add config mount
@@ -173,6 +175,7 @@ EOF
     
     volumes:
       - ${project_path}:/var/www/html
+      - ${ROOT_DIR}/logs/projects/${project_name}:/var/log/apache2
 EOF
             
             # Add config mount
@@ -237,6 +240,7 @@ EOF
     
     volumes:
       - ${project_path}:/var/www/html
+      - ${ROOT_DIR}/logs/projects/${project_name}:/var/log/caddy
 EOF
             
             # Add config mount
@@ -293,6 +297,7 @@ EOF
     
     volumes:
       - ${project_path}:/var/www/html
+      - ${ROOT_DIR}/logs/projects/${project_name}:/var/log/ferron
 EOF
             
             # Add config mount

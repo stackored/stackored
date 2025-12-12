@@ -15,6 +15,40 @@ if (is_dir('/app/projects')) {
     $baseDir = dirname(__DIR__);
 }
 
+$projectsDir = $baseDir . '/projects';
+$envFile = $baseDir . '/.env';
+
+// Function to get value from .env file
+function getEnvValue($key, $default = '')
+{
+    global $envFile;
+
+    if (!file_exists($envFile)) {
+        return $default;
+    }
+
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Skip comments
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+
+        // Parse key=value
+        if (strpos($line, '=') !== false) {
+            list($envKey, $envValue) = explode('=', $line, 2);
+            if (trim($envKey) === $key) {
+                // Remove quotes
+                $envValue = trim($envValue);
+                $envValue = trim($envValue, '"\'');
+                return $envValue;
+            }
+        }
+    }
+
+    return $default;
+}
+
 // Function to check if a domain is resolvable (configured in DNS/hosts)
 function isDomainConfigured($domain) {
     if (empty($domain)) {
@@ -89,7 +123,107 @@ function getContainerPorts($containerName) {
     return $result;
 }
 
-$projectsDir = $baseDir . '/projects';
+// Function to get project logs
+function getProjectLogs($projectName, $webserver, $baseDir) {
+    $logsDir = $baseDir . '/logs/projects/' . $projectName;
+    
+    // Determine container log paths based on webserver type
+    $webLogBase = '/var/log/nginx'; // default
+    if ($webserver === 'apache') {
+        $webLogBase = '/var/log/apache2';
+    } elseif ($webserver === 'caddy') {
+        $webLogBase = '/var/log/caddy';
+    } elseif ($webserver === 'ferron') {
+        $webLogBase = '/var/log/ferron';
+    }
+    
+    // PHP container logs
+    $phpLogBase = '/var/log/' . $projectName;
+    
+    // Check if logs directory exists
+    if (!is_dir($logsDir)) {
+        return null;
+    }
+    
+    $logs = [];
+    
+    // Check for web access log (nginx/apache)
+    $webAccessLog = $logsDir . '/access.log';
+    if (file_exists($webAccessLog)) {
+        $logs['web_access'] = [
+            'container_path' => $webLogBase . '/access.log',
+            'host_path' => 'logs/projects/' . $projectName . '/access.log'
+        ];
+    }
+    
+    // Check for web error log
+    $webErrorLog = $logsDir . '/error.log';
+    if (file_exists($webErrorLog)) {
+        $logs['web_error'] = [
+            'container_path' => $webLogBase . '/error.log',
+            'host_path' => 'logs/projects/' . $projectName . '/error.log'
+        ];
+    }
+    
+    // Check for PHP error log
+    $phpErrorLog = $logsDir . '/php-error.log';
+    if (file_exists($phpErrorLog)) {
+        $logs['php_error'] = [
+            'container_path' => $phpLogBase . '/php-error.log',
+            'host_path' => 'logs/projects/' . $projectName . '/php-error.log'
+        ];
+    }
+    
+    return !empty($logs) ? $logs : null;
+}
+
+// Function to check project configuration
+function getProjectConfiguration($projectPath, $webserver) {
+    $stackoredDir = $projectPath . '/.stackored';
+    
+    // Check if .stackored directory exists
+    if (!is_dir($stackoredDir)) {
+        return [
+            'type' => 'default',
+            'has_custom' => false,
+            'files' => []
+        ];
+    }
+    
+    $configFiles = [];
+    
+    // Check for common config files based on webserver type
+    $possibleConfigs = [
+        'nginx' => ['nginx.conf', 'default.conf'],
+        'apache' => ['apache.conf', 'httpd.conf'],
+        'caddy' => ['Caddyfile'],
+        'ferron' => ['ferron.yaml', 'ferron.conf']
+    ];
+    
+    // Check webserver-specific configs
+    if (isset($possibleConfigs[$webserver])) {
+        foreach ($possibleConfigs[$webserver] as $configFile) {
+            if (file_exists($stackoredDir . '/' . $configFile)) {
+                $configFiles[] = $configFile;
+            }
+        }
+    }
+    
+    // Check for PHP configs
+    if (file_exists($stackoredDir . '/php.ini')) {
+        $configFiles[] = 'php.ini';
+    }
+    if (file_exists($stackoredDir . '/php-fpm.conf')) {
+        $configFiles[] = 'php-fpm.conf';
+    }
+    
+    return [
+        'type' => !empty($configFiles) ? 'custom' : 'default',
+        'has_custom' => !empty($configFiles),
+        'files' => $configFiles
+    ];
+}
+
 $projects = [];
 
 try {
@@ -177,6 +311,16 @@ try {
         $domain = $config['domain'] ?? null;
         $dnsConfigured = isDomainConfigured($domain);
         
+        // Get SSL status from environment
+        $sslEnabled = getEnvValue('SSL_ENABLE', 'true') === 'true';
+        
+        // Build URLs
+        $urls = [
+            'https' => $domain ? 'https://' . $domain : null,
+            'http' => $domain ? 'http://' . $domain : null,
+            'primary' => $domain ? ($sslEnabled ? 'https://' . $domain : 'http://' . $domain) : null
+        ];
+        
         // Get port mappings for containers
         $webPorts = [];
         $phpPorts = [];
@@ -187,12 +331,30 @@ try {
             $phpPorts = getContainerPorts($phpContainer);
         }
         
+        // Get project logs
+        $webserver = $config['webserver'] ?? 'nginx';
+        $logs = getProjectLogs($projectName, $webserver, $baseDir);
+        
+        // Get project configuration info
+        $configuration = getProjectConfiguration($projectPath, $webserver);
+        
+        // Merge port information from web container to main ports object
+        $ports = $webRunning ? $webPorts : [];
+        
+        // Build project path info
+        $projectPathInfo = [
+            'container_path' => '/var/www/html',
+            'host_path' => str_replace($baseDir . '/', '', $projectPath)
+        ];
+        
         // Add project with full configuration
         // Support multiple runtime languages: php, nodejs, python, ruby, golang
         $projects[] = [
             'name' => $projectName,
             'domain' => $domain,
             'dns_configured' => $dnsConfigured,
+            'ssl_enabled' => $sslEnabled,
+            'urls' => $urls,
             'php' => $config['php'] ?? null,
             'nodejs' => $config['nodejs'] ?? null,
             'python' => $config['python'] ?? null,
@@ -201,6 +363,10 @@ try {
             'webserver' => $config['webserver'] ?? null,
             'document_root' => $config['document_root'] ?? null,
             'running' => $running,
+            'ports' => $ports,
+            'logs' => $logs,
+            'configuration' => $configuration,
+            'project_path' => $projectPathInfo,
             'containers' => [
                 'web' => array_merge([
                     'name' => $webContainer,

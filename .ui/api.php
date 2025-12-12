@@ -58,6 +58,21 @@ function isContainerRunning($containerName)
     return $returnCode === 0 && isset($output[0]) && trim($output[0]) === 'true';
 }
 
+// Function to check if a domain is resolvable (configured in DNS/hosts)
+function isDomainConfigured($domain) {
+    if (empty($domain)) {
+        return false;
+    }
+    
+    // Use gethostbyname to check if domain resolves
+    // If it doesn't resolve, it returns the domain name itself
+    $ip = gethostbyname($domain);
+    
+    // If gethostbyname returns the same string, domain is not configured
+    // If it returns an IP, domain is configured
+    return $ip !== $domain;
+}
+
 // Function to get container port mappings and network information
 function getContainerPorts($containerName) {
     $result = [
@@ -118,8 +133,10 @@ function getContainerPorts($containerName) {
     return $result;
 }
 
-// Function to get service log paths
-function getServiceLogPaths($serviceName, $baseDir) {
+// Function to get service logs with size information
+function getServiceLogs($serviceName, $baseDir) {
+    $hostLogPath = $baseDir . '/logs/' . $serviceName;
+    
     // Map service names to their container log paths
     $containerLogPaths = [
         'mysql' => '/var/log/mysql',
@@ -135,28 +152,70 @@ function getServiceLogPaths($serviceName, $baseDir) {
         'rabbitmq' => '/var/log/rabbitmq',
         'kafka' => '/var/log/kafka',
         'memcached' => '/var/log/memcached',
-        'cassandra' => '/var/log/cassandra',
-        'couchdb' => '/var/log/couchdb',
-        'couchbase' => '/opt/couchbase/var/lib/couchbase/logs',
-        'kibana' => '/var/log/kibana',
-        'logstash' => '/var/log/logstash',
-        'grafana' => '/var/log/grafana',
-        'prometheus' => '/var/log/prometheus',
-        'sonarqube' => '/opt/sonarqube/logs',
-        'jenkins' => '/var/log/jenkins',
-        'tomcat' => '/usr/local/tomcat/logs',
-        'activemq' => '/var/log/activemq',
-        'kong' => '/usr/local/kong/logs',
+        'netdata' => '/var/log/netdata',
         'traefik' => '/var/log/traefik',
     ];
     
-    $containerPath = $containerLogPaths[strtolower($serviceName)] ?? '/var/log/' . $serviceName;
-    $hostPath = $baseDir . '/logs/' . $serviceName;
+    $containerBasePath = $containerLogPaths[strtolower($serviceName)] ?? '/var/log/' . $serviceName;
+    
+    // Check if log directory exists
+    if (!is_dir($hostLogPath)) {
+        return null;
+    }
+    
+    // Check for common log file patterns
+    $possibleLogFiles = [
+        $serviceName . '.log',
+        'error.log',
+        'access.log',
+        'main.log',
+        'slow.log',
+    ];
+    
+    $foundLogFile = null;
+    $foundFileName = null;
+    foreach ($possibleLogFiles as $fileName) {
+        $file = $hostLogPath . '/' . $fileName;
+        if (file_exists($file)) {
+            $foundLogFile = $file;
+            $foundFileName = $fileName;
+            break;
+        }
+    }
+    
+    if (!$foundLogFile) {
+        // Return directory paths if no specific log file found
+        return [
+            'container_path' => $containerBasePath,
+            'host_path' => 'logs/' . $serviceName,
+            'size' => null
+        ];
+    }
+    
+    // Get file size
+    $size = filesize($foundLogFile);
+    $sizeFormatted = formatBytes($size);
+    
+    // Build paths
+    $containerPath = $containerBasePath . '/' . $foundFileName;
+    $hostPath = 'logs/' . $serviceName . '/' . $foundFileName;
     
     return [
-        'host' => $hostPath,
-        'container' => $containerPath
+        'container_path' => $containerPath,
+        'host_path' => $hostPath,
+        'size' => $sizeFormatted
     ];
+}
+
+// Function to format bytes to human readable format
+function formatBytes($bytes, $precision = 2) {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    
+    for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+        $bytes /= 1024;
+    }
+    
+    return round($bytes, $precision) . ' ' . $units[$i];
 }
 
 // Scan modules directory
@@ -190,11 +249,15 @@ if (is_dir($modulesDir)) {
 
         // Build URL if exists
         $fullUrl = '';
+        $domain = '';
+        $dnsConfigured = false;
         if (!empty($url)) {
             $tldSuffix = getEnvValue('DEFAULT_TLD_SUFFIX', 'stackored.loc');
             $sslEnable = getEnvValue('SSL_ENABLE', 'true') === 'true';
             $protocol = $sslEnable ? 'https' : 'http';
-            $fullUrl = $protocol . '://' . $url . '.' . $tldSuffix;
+            $domain = $url . '.' . $tldSuffix;
+            $fullUrl = $protocol . '://' . $domain;
+            $dnsConfigured = isDomainConfigured($domain);
         }
 
         // Capitalize first letter for display name
@@ -206,8 +269,8 @@ if (is_dir($modulesDir)) {
             $ports = getContainerPorts($containerName);
         }
         
-        // Get log paths
-        $logPaths = getServiceLogPaths($serviceName, $baseDir);
+        // Get logs
+        $logs = getServiceLogs($serviceName, $baseDir);
         
         $services[] = [
             'name' => $serviceName,
@@ -216,8 +279,10 @@ if (is_dir($modulesDir)) {
             'version' => $version,
             'port' => $port,
             'url' => $fullUrl,
+            'domain' => $domain,
+            'dns_configured' => $dnsConfigured,
             'ports' => $ports,
-            'log_paths' => $logPaths,
+            'logs' => $logs,
         ];
     }
 }
