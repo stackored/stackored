@@ -36,6 +36,9 @@ tmp/
 temp/
 *.tmp
 
+# Cache
+.ui/cache/
+
 # OS files
 Thumbs.db
 .DS_Store

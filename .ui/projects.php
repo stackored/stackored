@@ -4,140 +4,42 @@
 # Returns projects from projects directory with stackored.json
 ###################################################################
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+// Load shared libraries
+require_once __DIR__ . '/lib/config.php';
+require_once __DIR__ . '/lib/env.php';
+require_once __DIR__ . '/lib/docker.php';
+require_once __DIR__ . '/lib/network.php';
+require_once __DIR__ . '/lib/response.php';
+require_once __DIR__ . '/lib/utils.php';
+require_once __DIR__ . '/lib/logger.php';
 
-// Base directory - works both in Docker and locally
-if (is_dir('/app/projects')) {
-    $baseDir = '/app';
-} else {
-    // Running locally
-    $baseDir = dirname(__DIR__);
-}
+// Load configuration
+Config::load('app');
 
-$projectsDir = $baseDir . '/projects';
-$envFile = $baseDir . '/.env';
+setCorsHeaders();
 
-// Function to get value from .env file
-function getEnvValue($key, $default = '')
-{
-    global $envFile;
+// Start request tracking
+$startTime = microtime(true);
+Logger::logRequest('/projects.php', 'GET');
 
-    if (!file_exists($envFile)) {
-        return $default;
-    }
-
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        // Skip comments
-        if (strpos(trim($line), '#') === 0) {
-            continue;
-        }
-
-        // Parse key=value
-        if (strpos($line, '=') !== false) {
-            list($envKey, $envValue) = explode('=', $line, 2);
-            if (trim($envKey) === $key) {
-                // Remove quotes
-                $envValue = trim($envValue);
-                $envValue = trim($envValue, '"\'');
-                return $envValue;
-            }
-        }
-    }
-
-    return $default;
-}
-
-// Function to check if a domain is resolvable (configured in DNS/hosts)
-function isDomainConfigured($domain) {
-    if (empty($domain)) {
-        return false;
-    }
-    
-    // Use gethostbyname to check if domain resolves
-    // If it doesn't resolve, it returns the domain name itself
-    $ip = gethostbyname($domain);
-    
-    // If gethostbyname returns the same string, domain is not configured
-    // If it returns an IP, domain is configured
-    return $ip !== $domain;
-}
-
-// Function to get container port mappings and network information
-function getContainerPorts($containerName) {
-    $result = [
-        'ports' => [],
-        'ip_address' => null,
-        'network' => null,
-        'gateway' => null
-    ];
-    
-    $output = [];
-    $returnCode = 0;
-    
-    exec(sprintf('docker inspect -f \'{{json .NetworkSettings.Ports}}\' %s 2>/dev/null', escapeshellarg($containerName)), $output, $returnCode);
-    
-    if ($returnCode === 0 && !empty($output[0])) {
-        $portData = json_decode($output[0], true);
-        if ($portData) {
-            foreach ($portData as $dockerPort => $hostBindings) {
-                if ($hostBindings === null) {
-                    $result['ports'][$dockerPort] = [
-                        'docker_port' => rtrim($dockerPort, '/tcp'),
-                        'host_ip' => null,
-                        'host_port' => null,
-                        'exposed' => false
-                    ];
-                } else {
-                    $binding = $hostBindings[0];
-                    $result['ports'][$dockerPort] = [
-                        'docker_port' => rtrim($dockerPort, '/tcp'),
-                        'host_ip' => $binding['HostIp'] === '0.0.0.0' ? '0.0.0.0' : $binding['HostIp'],
-                        'host_port' => $binding['HostPort'],
-                        'exposed' => true
-                    ];
-                }
-            }
-        }
-    }
-    
-    // Get network information
-    $output = [];
-    exec(sprintf('docker inspect -f \'{{json .NetworkSettings.Networks}}\' %s 2>/dev/null', escapeshellarg($containerName)), $output, $returnCode);
-    
-    if ($returnCode === 0 && !empty($output[0])) {
-        $networks = json_decode($output[0], true);
-        if ($networks && is_array($networks)) {
-            $networkData = reset($networks);
-            $networkName = key($networks);
-            
-            if ($networkData) {
-                $result['ip_address'] = $networkData['IPAddress'] ?? null;
-                $result['network'] = $networkName;
-                $result['gateway'] = $networkData['Gateway'] ?? null;
-            }
-        }
-    }
-    
-    return $result;
-}
+$baseDir = Config::get('base_dir');
+$projectsDir = $baseDir . '/' . Config::get('projects_dir');
 
 // Function to get project logs
 function getProjectLogs($projectName, $webserver, $baseDir) {
-    $logsDir = $baseDir . '/logs/projects/' . $projectName;
+    $logsDir = $baseDir . '/' . Config::get('logs_dir') . '/projects/' . $projectName;
     
-    // Determine container log paths based on webserver type
-    $webLogBase = '/var/log/nginx'; // default
-    if ($webserver === 'apache') {
-        $webLogBase = '/var/log/apache2';
-    } elseif ($webserver === 'caddy') {
-        $webLogBase = '/var/log/caddy';
-    } elseif ($webserver === 'ferron') {
-        $webLogBase = '/var/log/ferron';
-    }
+    // Convention-based webserver log paths
+    $webserverPaths = [
+        'nginx' => '/var/log/nginx',
+        'apache' => '/var/log/apache2',
+        'caddy' => '/var/log/caddy',
+        'ferron' => '/var/log/ferron',
+    ];
     
-    // PHP container logs
+    $webLogBase = $webserverPaths[$webserver] ?? '/var/log/nginx';
+    
+    // PHP container logs - standard path
     $phpLogBase = '/var/log/' . $projectName;
     
     // Check if logs directory exists
@@ -386,16 +288,24 @@ try {
         return strcmp($a['name'], $b['name']);
     });
     
-    echo json_encode([
-        'success' => true,
+    // Log response
+    $duration = microtime(true) - $startTime;
+    Logger::logResponse('/projects.php', 200, $duration);
+    Logger::debug('Projects loaded', ['count' => count($projects)]);
+    
+    jsonSuccess([
         'projects' => $projects,
         'count' => count($projects)
-    ], JSON_PRETTY_PRINT);
+    ]);
     
 } catch (Exception $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Error: ' . $e->getMessage(),
-        'projects' => []
+    $duration = microtime(true) - $startTime;
+    Logger::logResponse('/projects.php', 500, $duration);
+    Logger::error('Projects API error', [
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
     ]);
+    
+    jsonError('Error: ' . $e->getMessage());
 }

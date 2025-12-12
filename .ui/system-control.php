@@ -4,25 +4,23 @@
 # Execute system-wide commands: up, down, restart
 ###################################################################
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
+// Load shared libraries
+require_once __DIR__ . '/lib/response.php';
+require_once __DIR__ . '/lib/logger.php';
+
+setCorsHeaders();
+handlePreflight();
 
 // Increase execution time for stopping many containers
 set_time_limit(120);
 
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+// Start request tracking
+$startTime = microtime(true);
+Logger::logRequest('/system-control.php', 'POST', $_POST);
 
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-    exit;
+    jsonError('Method not allowed', 405);
 }
 
 // Get POST data
@@ -31,16 +29,12 @@ $command = $input['command'] ?? '';
 
 // Validate input
 if (empty($command)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing command parameter']);
-    exit;
+    jsonError('Missing command parameter', 400);
 }
 
 // Validate command
 if (!in_array($command, ['up', 'down', 'restart'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid command. Must be up, down, or restart']);
-    exit;
+    jsonError('Invalid command. Must be up, down, or restart', 400);
 }
 
 // Get all stackored and project containers
@@ -51,12 +45,7 @@ $returnCode = 0;
 exec('docker ps -a --filter "name=stackored-" --format "{{.Names}}"', $stackoredContainers, $returnCode);
 
 if ($returnCode !== 0) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to get container list'
-    ]);
-    exit;
+    jsonError('Failed to get container list', 500);
 }
 
 // Get list of all project containers (project*-web and project*-php)
@@ -66,14 +55,12 @@ exec('docker ps -a --filter "name=project" --format "{{.Names}}"', $projectConta
 $containerList = array_merge($stackoredContainers, $projectContainers ?? []);
 
 if (empty($containerList)) {
-    echo json_encode([
-        'success' => true,
+    jsonSuccess([
         'message' => 'No stackored containers found',
         'command' => $command,
         'affected_containers' => 0,
         'containers' => []
     ]);
-    exit;
 }
 
 // Exclude UI and Traefik from down and restart commands to keep UI accessible
@@ -83,15 +70,13 @@ if ($command === 'down' || $command === 'restart') {
     });
     
     if (empty($containerList)) {
-        echo json_encode([
-            'success' => true,
+        jsonSuccess([
             'message' => 'All containers ' . ($command === 'down' ? 'stopped' : 'restarted') . ' (UI and Traefik kept running)',
             'command' => $command,
             'affected_containers' => 0,
             'containers' => [],
             'note' => 'stackored-ui and stackored-traefik are kept running to maintain UI access'
         ]);
-        exit;
     }
 }
 
@@ -110,21 +95,30 @@ $output = [];
 $returnCode = 0;
 exec($dockerCmd, $output, $returnCode);
 
+// Log Docker command execution
+Logger::logDockerCommand($dockerCmd, $returnCode, $output);
+
 // Return results
 if ($returnCode === 0) {
-    echo json_encode([
-        'success' => true,
+    $duration = microtime(true) - $startTime;
+    Logger::logResponse('/system-control.php', 200, $duration);
+    Logger::info("System {$command} successful", [
+        'affected_containers' => count($containerList)
+    ]);
+    
+    jsonSuccess([
         'message' => ucfirst($command) . ' command executed successfully on all containers',
         'command' => $command,
         'affected_containers' => count($containerList),
         'containers' => $containerList
     ]);
 } else {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to execute ' . $command . ' command',
+    $duration = microtime(true) - $startTime;
+    Logger::logResponse('/system-control.php', 500, $duration);
+    Logger::error("System {$command} failed", [
         'command' => $command,
         'error' => implode("\n", $output)
     ]);
+    
+    jsonError('Failed to execute ' . $command . ' command: ' . implode("\n", $output), 500);
 }

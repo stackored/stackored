@@ -15,6 +15,8 @@ services:
       - ./.ui:/usr/share/nginx/html:ro
       - ./:/app:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./.ui/logs:/usr/share/nginx/html/logs:rw
+      - ./.ui/cache:/usr/share/nginx/html/cache:rw
     
     networks:
       - {{ DOCKER_DEFAULT_NETWORK }}

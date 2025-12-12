@@ -4,22 +4,20 @@
 # Start/Stop individual services
 ###################################################################
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
+// Load shared libraries
+require_once __DIR__ . '/lib/response.php';
+require_once __DIR__ . '/lib/logger.php';
 
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+setCorsHeaders();
+handlePreflight();
+
+// Start request tracking
+$startTime = microtime(true);
+Logger::logRequest('/control.php', 'POST', $_POST);
 
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-    exit;
+    jsonError('Method not allowed', 405);
 }
 
 // Get POST data
@@ -29,23 +27,17 @@ $action = $input['action'] ?? '';
 
 // Validate input
 if (empty($service) || empty($action)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing service or action parameter']);
-    exit;
+    jsonError('Missing service or action parameter', 400);
 }
 
 // Validate action
 if (!in_array($action, ['start', 'stop', 'restart'])) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid action. Must be start, stop, or restart']);
-    exit;
+    jsonError('Invalid action. Must be start, stop, or restart', 400);
 }
 
 // Sanitize service name (only allow alphanumeric and dash)
 if (!preg_match('/^[a-z0-9-]+$/', $service)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid service name']);
-    exit;
+    jsonError('Invalid service name', 400);
 }
 
 // Build docker command
@@ -71,18 +63,27 @@ $output = [];
 $returnCode = 0;
 exec($command, $output, $returnCode);
 
+// Log Docker command execution
+Logger::logDockerCommand($command, $returnCode, $output);
+
 if ($returnCode === 0) {
-    echo json_encode([
-        'success' => true,
+    $duration = microtime(true) - $startTime;
+    Logger::logResponse('/control.php', 200, $duration);
+    Logger::info("Service {$action} successful", ['service' => $service]);
+    
+    jsonSuccess([
         'message' => ucfirst($action) . ' command executed successfully',
         'service' => $service,
         'action' => $action
     ]);
 } else {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to execute command',
+    $duration = microtime(true) - $startTime;
+    Logger::logResponse('/control.php', 500, $duration);
+    Logger::error("Service {$action} failed", [
+        'service' => $service,
+        'action' => $action,
         'error' => implode("\n", $output)
     ]);
+    
+    jsonError('Failed to execute command: ' . implode("\n", $output), 500);
 }

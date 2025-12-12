@@ -4,173 +4,52 @@
 # Returns services from core/templates/modules with .env status
 ###################################################################
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+// Load shared libraries
+require_once __DIR__ . '/lib/config.php';
+require_once __DIR__ . '/lib/env.php';
+require_once __DIR__ . '/lib/docker.php';
+require_once __DIR__ . '/lib/network.php';
+require_once __DIR__ . '/lib/response.php';
+require_once __DIR__ . '/lib/utils.php';
+require_once __DIR__ . '/lib/logger.php';
 
-// Base directory - works both in Docker and locally
-if (is_dir('/app/core/templates/modules')) {
-    $baseDir = '/app';
-} else {
-    // Running locally
-    $baseDir = dirname(__DIR__);
-}
+// Load configuration
+Config::load('app');
 
-$modulesDir = $baseDir . '/core/templates/modules';
-$envFile = $baseDir . '/.env';
+setCorsHeaders();
 
-// Function to get value from .env file
-function getEnvValue($key, $default = '')
-{
-    global $envFile;
+// Start request tracking
+$startTime = microtime(true);
+Logger::logRequest('/api.php', 'GET');
 
-    if (!file_exists($envFile)) {
-        return $default;
-    }
-
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        // Skip comments
-        if (strpos(trim($line), '#') === 0) {
-            continue;
-        }
-
-        // Parse key=value
-        if (strpos($line, '=') !== false) {
-            list($envKey, $envValue) = explode('=', $line, 2);
-            if (trim($envKey) === $key) {
-                // Remove quotes
-                $envValue = trim($envValue);
-                $envValue = trim($envValue, '"\'');
-                return $envValue;
-            }
-        }
-    }
-
-    return $default;
-}
-
-// Function to check if container is running
-function isContainerRunning($containerName)
-{
-    $output = [];
-    $returnCode = 0;
-    exec("docker inspect -f '{{.State.Running}}' " . escapeshellarg($containerName) . " 2>/dev/null", $output, $returnCode);
-    return $returnCode === 0 && isset($output[0]) && trim($output[0]) === 'true';
-}
-
-// Function to check if a domain is resolvable (configured in DNS/hosts)
-function isDomainConfigured($domain) {
-    if (empty($domain)) {
-        return false;
-    }
-    
-    // Use gethostbyname to check if domain resolves
-    // If it doesn't resolve, it returns the domain name itself
-    $ip = gethostbyname($domain);
-    
-    // If gethostbyname returns the same string, domain is not configured
-    // If it returns an IP, domain is configured
-    return $ip !== $domain;
-}
-
-// Function to get container port mappings and network information
-function getContainerPorts($containerName) {
-    $result = [
-        'ports' => [],
-        'ip_address' => null,
-        'network' => null,
-        'gateway' => null
-    ];
-    
-    // Get port mappings
-    $output = [];
-    $returnCode = 0;
-    exec(sprintf('docker inspect -f \'{{json .NetworkSettings.Ports}}\' %s 2>/dev/null', escapeshellarg($containerName)), $output, $returnCode);
-    
-    if ($returnCode === 0 && !empty($output[0])) {
-        $portData = json_decode($output[0], true);
-        if ($portData) {
-            foreach ($portData as $dockerPort => $hostBindings) {
-                if ($hostBindings === null) {
-                    $result['ports'][$dockerPort] = [
-                        'docker_port' => rtrim($dockerPort, '/tcp'),
-                        'host_ip' => null,
-                        'host_port' => null,
-                        'exposed' => false
-                    ];
-                } else {
-                    $binding = $hostBindings[0];
-                    $result['ports'][$dockerPort] = [
-                        'docker_port' => rtrim($dockerPort, '/tcp'),
-                        'host_ip' => $binding['HostIp'] === '0.0.0.0' ? '0.0.0.0' : $binding['HostIp'],
-                        'host_port' => $binding['HostPort'],
-                        'exposed' => true
-                    ];
-                }
-            }
-        }
-    }
-    
-    // Get network information
-    $output = [];
-    exec(sprintf('docker inspect -f \'{{json .NetworkSettings.Networks}}\' %s 2>/dev/null', escapeshellarg($containerName)), $output, $returnCode);
-    
-    if ($returnCode === 0 && !empty($output[0])) {
-        $networks = json_decode($output[0], true);
-        if ($networks && is_array($networks)) {
-            // Get first network (usually the main one)
-            $networkData = reset($networks);
-            $networkName = key($networks);
-            
-            if ($networkData) {
-                $result['ip_address'] = $networkData['IPAddress'] ?? null;
-                $result['network'] = $networkName;
-                $result['gateway'] = $networkData['Gateway'] ?? null;
-            }
-        }
-    }
-    
-    return $result;
-}
+$baseDir = Config::get('base_dir');
+$modulesDir = $baseDir . '/' . Config::get('modules_dir');
 
 // Function to get service logs with size information
 function getServiceLogs($serviceName, $baseDir) {
-    $hostLogPath = $baseDir . '/logs/' . $serviceName;
+    $hostLogPath = $baseDir . '/' . Config::get('logs_dir') . '/' . $serviceName;
     
-    // Map service names to their container log paths
-    $containerLogPaths = [
-        'mysql' => '/var/log/mysql',
-        'mariadb' => '/var/log/mysql',
+    // Convention-based log paths with exceptions for non-standard services
+    // Most services follow /var/log/{service} pattern
+    $logPathExceptions = [
+        'activemq' => '/opt/apache-activemq/data',
+        'tomcat' => '/usr/local/tomcat/logs',
         'postgres' => '/var/lib/postgresql/data/log',
         'postgresql' => '/var/lib/postgresql/data/log',
-        'redis' => '/var/log/redis',
-        'nginx' => '/var/log/nginx',
-        'apache' => '/var/log/apache2',
-        'mongodb' => '/var/log/mongodb',
-        'mongo' => '/var/log/mongodb',
-        'elasticsearch' => '/var/log/elasticsearch',
-        'rabbitmq' => '/var/log/rabbitmq',
-        'kafka' => '/var/log/kafka',
-        'memcached' => '/var/log/memcached',
-        'netdata' => '/var/log/netdata',
-        'traefik' => '/var/log/traefik',
     ];
     
-    $containerBasePath = $containerLogPaths[strtolower($serviceName)] ?? '/var/log/' . $serviceName;
+    $containerBasePath = $logPathExceptions[strtolower($serviceName)] ?? '/var/log/' . $serviceName;
     
     // Check if log directory exists
     if (!is_dir($hostLogPath)) {
         return null;
     }
     
-    // Check for common log file patterns
-    $possibleLogFiles = [
-        $serviceName . '.log',
-        'error.log',
-        'access.log',
-        'main.log',
-        'slow.log',
-    ];
+    // Common log file patterns
+    $possibleLogFiles = array_merge(
+        [$serviceName . '.log'],
+        ['error.log', 'access.log', 'main.log', 'slow.log']
+    );
     
     $foundLogFile = null;
     $foundFileName = null;
@@ -207,17 +86,6 @@ function getServiceLogs($serviceName, $baseDir) {
     ];
 }
 
-// Function to format bytes to human readable format
-function formatBytes($bytes, $precision = 2) {
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    
-    for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
-        $bytes /= 1024;
-    }
-    
-    return round($bytes, $precision) . ' ' . $units[$i];
-}
-
 // Scan modules directory
 $services = [];
 
@@ -244,7 +112,7 @@ if (is_dir($modulesDir)) {
         $port = getEnvValue('HOST_PORT_' . $serviceUpper, '');
 
         // Check if container is running
-        $containerName = 'stackored-' . $serviceName;
+        $containerName = Config::get('container_prefix') . $serviceName;
         $running = isContainerRunning($containerName);
 
         // Build URL if exists
@@ -292,8 +160,10 @@ usort($services, function ($a, $b) {
     return strcmp($a['name'], $b['name']);
 });
 
+// Log response
+$duration = microtime(true) - $startTime;
+Logger::logResponse('/api.php', 200, $duration);
+Logger::debug('Services loaded', ['count' => count($services)]);
+
 // Output JSON
-echo json_encode([
-    'success' => true,
-    'services' => $services,
-], JSON_PRETTY_PRINT);
+jsonSuccess(['services' => $services]);
