@@ -93,7 +93,7 @@
           <v-main class="d-flex align-start justify-start">
             <v-container fluid>
               <!-- Dashboard View -->
-              <div v-if="currentView === 'dashboard'">
+              <div v-show="currentView === 'dashboard'">
                 <v-row>
                   <v-col cols="12" md="4" v-for="card in dashboardCards" :key="card.title">
                     <v-card rounded="0" elevation="0" hover :class="card.clickable ? 'cursor-pointer' : ''" @click="card.clickable ? currentView = card.view : null">
@@ -111,21 +111,181 @@
                   </v-col>
                 </v-row>
 
+                <!-- Docker Monitoring Graphs -->
                 <v-row class="mt-4">
                   <v-col cols="12">
                     <v-card rounded="0" elevation="0">
                       <v-card-title>
-                        <v-icon start>mdi-chart-line</v-icon>
-                        Recent Activity
+                        <v-icon start>mdi-chart-box-outline</v-icon>
+                        Docker Container Monitoring
+                        <v-spacer></v-spacer>
+                        <v-chip size="small" :color="dockerStats.loading ? 'grey' : 'success'" variant="tonal">
+                          <v-icon start size="small">{{ dockerStats.loading ? 'mdi-loading mdi-spin' : 'mdi-check-circle' }}</v-icon>
+                          {{ dockerStats.loading ? 'Loading...' : 'Live' }}
+                        </v-chip>
                       </v-card-title>
+                      <v-divider></v-divider>
                       <v-card-text>
-                        <v-sheet color="surface-light" height="300" rounded="lg" width="100%" class="d-flex align-center justify-center">
-                          <div class="text-center text-grey">
-                            <v-icon size="64" class="mb-4">mdi-chart-timeline-variant</v-icon>
-                            <div class="text-h6">Activity Chart</div>
-                            <div class="text-caption">Coming soon...</div>
-                          </div>
-                        </v-sheet>
+                        <v-row>
+                          <!-- CPU Load Gauge -->
+                          <v-col cols="12" md="6" lg="3">
+                            <v-card elevation="2" class="pa-4">
+                              <div class="text-subtitle-2 text-grey mb-4">CPU Load</div>
+                              <div class="d-flex flex-column align-center">
+                                <v-progress-circular
+                                  :model-value="parseFloat(dockerStats.cpuPercent)"
+                                  :size="160"
+                                  :width="20"
+                                  :color="cpuColor"
+                                  class="mb-4"
+                                >
+                                  <div class="text-h4 font-weight-bold">{{ dockerStats.cpuPercent }}%</div>
+                                </v-progress-circular>
+                              </div>
+                              <div class="text-center mt-2">
+                                <div class="text-h5 font-weight-bold">{{ dockerStats.cpuPercent }}%</div>
+                                <v-row dense class="mt-2 text-caption">
+                                  <v-col cols="3">
+                                    <div class="text-grey">System</div>
+                                    <div class="font-weight-bold">{{ dockerStats.cpuBreakdown.system }}%</div>
+                                  </v-col>
+                                  <v-col cols="3">
+                                    <div class="text-grey">User</div>
+                                    <div class="font-weight-bold">{{ dockerStats.cpuBreakdown.user }}%</div>
+                                  </v-col>
+                                  <v-col cols="3">
+                                    <div class="text-grey">Nice</div>
+                                    <div class="font-weight-bold">{{ dockerStats.cpuBreakdown.nice }}%</div>
+                                  </v-col>
+                                  <v-col cols="3">
+                                    <div class="text-grey">Idle</div>
+                                    <div class="font-weight-bold">{{ dockerStats.cpuBreakdown.idle }}%</div>
+                                  </v-col>
+                                </v-row>
+                              </div>
+                            </v-card>
+                          </v-col>
+
+                          <!-- CPU Usage History -->
+                          <v-col cols="12" md="6" lg="3">
+                            <v-card elevation="2" class="pa-4">
+                              <div class="text-subtitle-2 text-grey mb-4">CPU Usage History</div>
+                              <v-sparkline
+                                :model-value="cpuHistory"
+                                :gradient="['#4CAF50', '#81C784', '#4CAF50']"
+                                :line-width="3"
+                                :padding="8"
+                                :smooth="10"
+                                :fill="true"
+                                auto-draw
+                                height="200"
+                              ></v-sparkline>
+                            </v-card>
+                          </v-col>
+
+                          <!-- Memory Usage -->
+                          <v-col cols="12" md="6" lg="3">
+                            <v-card elevation="2" class="pa-4">
+                              <div class="text-subtitle-2 text-grey mb-2">Memory</div>
+                              <div class="text-h6 font-weight-bold mb-4">{{ dockerStats.memoryUsed }} / {{ dockerStats.memoryTotal }} GB</div>
+                              
+                              <div class="mb-3">
+                                <div class="d-flex justify-space-between text-caption mb-1">
+                                  <span class="text-grey">App Memory</span>
+                                  <span class="font-weight-bold">{{ dockerStats.memoryBreakdown.app }} GB</span>
+                                </div>
+                                <v-progress-linear
+                                  :model-value="(parseFloat(dockerStats.memoryBreakdown.app) / parseFloat(dockerStats.memoryTotal)) * 100"
+                                  color="success"
+                                  height="12"
+                                  rounded
+                                ></v-progress-linear>
+                              </div>
+
+                              <div class="mb-3">
+                                <div class="d-flex justify-space-between text-caption mb-1">
+                                  <span class="text-grey">Wired</span>
+                                  <span class="font-weight-bold">{{ dockerStats.memoryBreakdown.wired }} GB</span>
+                                </div>
+                                <v-progress-linear
+                                  :model-value="(parseFloat(dockerStats.memoryBreakdown.wired) / parseFloat(dockerStats.memoryTotal)) * 100"
+                                  color="warning"
+                                  height="12"
+                                  rounded
+                                ></v-progress-linear>
+                              </div>
+
+                              <div class="mb-3">
+                                <div class="d-flex justify-space-between text-caption mb-1">
+                                  <span class="text-grey">Compressed</span>
+                                  <span class="font-weight-bold">{{ dockerStats.memoryBreakdown.compressed }} GB</span>
+                                </div>
+                                <v-progress-linear
+                                  :model-value="(parseFloat(dockerStats.memoryBreakdown.compressed) / parseFloat(dockerStats.memoryTotal)) * 100"
+                                  color="info"
+                                  height="12"
+                                  rounded
+                                ></v-progress-linear>
+                              </div>
+
+                              <div class="text-caption text-grey mt-2">
+                                Memory Pressure: {{ dockerStats.memoryBreakdown.pressure }}%
+                              </div>
+                              <div class="text-right mt-2">
+                                <div class="text-h6 font-weight-bold">{{ dockerStats.memoryUsed }} / {{ dockerStats.memoryTotal }} GB</div>
+                                <v-row dense class="mt-2 text-caption">
+                                  <v-col cols="3">
+                                    <div class="text-grey">Pressure</div>
+                                    <div class="font-weight-bold">{{ dockerStats.memoryBreakdown.pressure }}%</div>
+                                  </v-col>
+                                  <v-col cols="3">
+                                    <div class="text-grey">App</div>
+                                    <div class="font-weight-bold">{{ dockerStats.memoryBreakdown.app }} GB</div>
+                                  </v-col>
+                                  <v-col cols="3">
+                                    <div class="text-grey">Wired</div>
+                                    <div class="font-weight-bold">{{ dockerStats.memoryBreakdown.wired }} GB</div>
+                                  </v-col>
+                                  <v-col cols="3">
+                                    <div class="text-grey">Compressed</div>
+                                    <div class="font-weight-bold">{{ dockerStats.memoryBreakdown.compressed }} GB</div>
+                                  </v-col>
+                                </v-row>
+                              </div>
+                            </v-card>
+                          </v-col>
+
+                          <!-- Storage Usage -->
+                          <v-col cols="12" md="6" lg="3">
+                            <v-card elevation="2" class="pa-4">
+                              <div class="text-subtitle-2 text-grey mb-2">Storage</div>
+                              <div class="text-h6 font-weight-bold mb-4">{{ dockerStats.storageUsed }} / {{ dockerStats.storageTotal }} GB</div>
+                              
+                              <v-progress-linear
+                                :model-value="(parseFloat(dockerStats.storageUsed) / parseFloat(dockerStats.storageTotal)) * 100"
+                                :color="storageColor"
+                                height="24"
+                                rounded
+                                class="mb-2"
+                              >
+                                <template v-slot:default="{ value }">
+                                  <strong class="text-white">{{ Math.ceil(value) }}%</strong>
+                                </template>
+                              </v-progress-linear>
+
+                              <div class="d-flex justify-space-between text-caption">
+                                <div>
+                                  <v-icon size="small" color="success">mdi-checkbox-blank-circle</v-icon>
+                                  <span class="text-grey ml-1">Used: {{ dockerStats.storageUsed }} GB</span>
+                                </div>
+                                <div>
+                                  <v-icon size="small" color="grey-lighten-2">mdi-checkbox-blank-circle</v-icon>
+                                  <span class="text-grey ml-1">Free: {{ (parseFloat(dockerStats.storageTotal) - parseFloat(dockerStats.storageUsed)).toFixed(1) }} GB</span>
+                                </div>
+                              </div>
+                            </v-card>
+                          </v-col>
+                        </v-row>
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -133,7 +293,7 @@
               </div>
 
                         <!-- Services View -->
-                        <div v-if="currentView === 'services'">
+                        <div v-show="currentView === 'services'">
                     <v-card rounded="0" elevation="0">
                                         <v-card-title class="d-flex align-center">
                                             <v-icon start>mdi-server-network</v-icon>
@@ -210,14 +370,10 @@
                                                 <tr>
                                                     <td :colspan="columns.length" class="pa-4">
                                                         <v-card elevation="0" class="pa-4">
-                                                            <v-card-title class="text-h6 pa-0 mb-3">
-                                                                <v-icon start color="primary">mdi-information</v-icon>
-                                                                Service Details
-                                                            </v-card-title>
                                                             <v-row>
                                                                 <!-- Network Information -->
                                                                 <v-col cols="12" md="4">
-                                                                    <v-card variant="outlined" class="pa-3">
+                                                                    <v-card elevation="0" class="pa-3">
                                                                         <div class="text-subtitle-2 mb-2 d-flex align-center">
                                                                             <v-icon size="small" color="info" class="mr-2">mdi-network</v-icon>
                                                                             Network Information
@@ -265,7 +421,7 @@
 
                                                                 <!-- Service Information -->
                                                                 <v-col cols="12" md="4">
-                                                                    <v-card variant="outlined" class="pa-3">
+                                                                    <v-card elevation="0" class="pa-3">
                                                                         <div class="text-subtitle-2 mb-2 d-flex align-center">
                                                                             <v-icon size="small" color="primary" class="mr-2">mdi-server</v-icon>
                                                                             Service Information
@@ -303,7 +459,7 @@
 
                                                                 <!-- Log Information -->
                                                                 <v-col cols="12" md="4">
-                                                                    <v-card variant="outlined" class="pa-3">
+                                                                    <v-card elevation="0" class="pa-3">
                                                                         <div class="text-subtitle-2 mb-2 d-flex align-center">
                                                                             <v-icon size="small" color="orange" class="mr-2">mdi-text-box-outline</v-icon>
                                                                             Log Information
@@ -357,7 +513,7 @@
                         </div>
 
               <!-- Projects View -->
-              <div v-if="currentView === 'projects'">
+              <div v-show="currentView === 'projects'">
                     <v-card rounded="0" elevation="0">
                       <v-card-title class="d-flex align-center">
                         <v-icon start>mdi-folder-multiple</v-icon>
@@ -411,14 +567,7 @@
                             </a>
                             <v-tooltip v-if="!item.dns_configured" location="top">
                               <template v-slot:activator="{ props }">
-                                <v-icon 
-                                  v-bind="props" 
-                                  color="warning" 
-                                  size="small" 
-                                  class="ml-2"
-                                >
-                                  mdi-alert-circle
-                                </v-icon>
+                                <v-icon v-bind="props" color="warning" size="small" class="ml-2">mdi-alert-circle</v-icon>
                               </template>
                               <div class="text-caption">
                                 <strong>No Host DNS record found.</strong><br>
@@ -443,12 +592,7 @@
                           <div v-if="item.configuration">
                             <v-tooltip v-if="item.configuration.has_custom" location="top">
                               <template v-slot:activator="{ props }">
-                                <v-chip 
-                                  v-bind="props"
-                                  size="small" 
-                                  variant="tonal" 
-                                  color="success"
-                                >
+                                <v-chip v-bind="props" size="small" variant="tonal" color="success">
                                   <v-icon start size="small">mdi-cog</v-icon>
                                   Custom
                                 </v-chip>
@@ -460,12 +604,7 @@
                                 </span>
                               </div>
                             </v-tooltip>
-                            <v-chip 
-                              v-else
-                              size="small" 
-                              variant="tonal" 
-                              color="grey"
-                            >
+                            <v-chip v-else size="small" variant="tonal" color="grey">
                               <v-icon start size="small">mdi-cog-outline</v-icon>
                               Default
                             </v-chip>
@@ -478,53 +617,25 @@
                         </template>
 
                         <template v-slot:item.control="{ item }">
-                          <v-btn
-                            v-if="!item.error && item.running"
-                            size="small"
-                            color="error"
-                            variant="tonal"
-                            @click="controlProjectContainer(item.name, 'stop')"
-                            :loading="item.loading"
-                          >
+                          <v-btn v-if="!item.error && item.running" size="small" color="error" variant="tonal" @click="controlProjectContainer(item.name, 'stop')" :loading="item.loading">
                             <v-icon start>mdi-stop</v-icon>
                             Stop
                           </v-btn>
-                          <v-btn
-                            v-if="!item.error && !item.running"
-                            size="small"
-                            color="success"
-                            variant="tonal"
-                            @click="controlProjectContainer(item.name, 'start')"
-                            :loading="item.loading"
-                          >
+                          <v-btn v-if="!item.error && !item.running" size="small" color="success" variant="tonal" @click="controlProjectContainer(item.name, 'start')" :loading="item.loading">
                             <v-icon start>mdi-play</v-icon>
                             Start
                           </v-btn>
                         </template>
 
                         <template v-slot:item.restart="{ item }">
-                          <v-btn
-                            v-if="!item.error && item.running"
-                            size="small"
-                            color="warning"
-                            variant="tonal"
-                            @click="controlProjectContainer(item.name, 'restart')"
-                            :loading="item.loading"
-                          >
+                          <v-btn v-if="!item.error && item.running" size="small" color="warning" variant="tonal" @click="controlProjectContainer(item.name, 'restart')" :loading="item.loading">
                             <v-icon start>mdi-restart</v-icon>
                             Restart
                           </v-btn>
                         </template>
 
                         <template v-slot:item.open="{ item }">
-                          <v-btn
-                            v-if="!item.error && item.domain && item.running"
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                            :href="'https://' + item.domain"
-                            target="_blank"
-                          >
+                          <v-btn v-if="!item.error && item.domain && item.running" size="small" color="primary" variant="outlined" :href="'https://' + item.domain" target="_blank">
                             <v-icon start>mdi-open-in-new</v-icon>
                             Open
                           </v-btn>
@@ -534,14 +645,10 @@
                           <tr>
                             <td :colspan="columns.length" class="pa-4">
                               <v-card elevation="0" class="pa-4">
-                                <v-card-title class="text-h6 pa-0 mb-3">
-                                  <v-icon start color="primary">mdi-information</v-icon>
-                                  Project Details
-                                </v-card-title>
-                                <v-row>
+                                <v-row no-gutters>
                                   <!-- Container Information -->
                                   <v-col cols="12" md="4">
-                                    <v-card variant="outlined" class="pa-3">
+                                    <v-card elevation="0" class="pa-3">
                                       <div class="text-subtitle-2 mb-2 d-flex align-center">
                                         <v-icon size="small" color="info" class="mr-2">mdi-docker</v-icon>
                                         Container Information
@@ -600,7 +707,7 @@
 
                                   <!-- Project Information -->
                                   <v-col cols="12" md="4">
-                                    <v-card variant="outlined" class="pa-3">
+                                    <v-card elevation="0" class="pa-3">
                                       <div class="text-subtitle-2 mb-2 d-flex align-center">
                                         <v-icon size="small" color="primary" class="mr-2">mdi-folder-cog</v-icon>
                                         Project Configuration
@@ -711,7 +818,7 @@
 
                                   <!-- Log Information -->
                                   <v-col cols="12" md="4">
-                                    <v-card variant="outlined" class="pa-3">
+                                    <v-card elevation="0" class="pa-3">
                                       <div class="text-subtitle-2 mb-2 d-flex align-center">
                                         <v-icon size="small" color="orange" class="mr-2">mdi-text-box-outline</v-icon>
                                         Log Information
@@ -904,7 +1011,28 @@
                     projectsLoading: false,
                     commandLoading: false,
                     expandedServices: [],
-                    expandedProjects: []
+                    expandedProjects: [],
+                    dockerStats: {
+                        loading: true,
+                        cpuPercent: 0,
+                        cpuBreakdown: {
+                            system: 7.3,
+                            user: 10.4,
+                            nice: 0.0,
+                            idle: 82.2
+                        },
+                        memoryUsed: 10.8,
+                        memoryTotal: 16.0,
+                        memoryBreakdown: {
+                            pressure: 35.0,
+                            app: 5.2,
+                            wired: 2.4,
+                            compressed: 3.2
+                        },
+                        storageUsed: 397.6,
+                        storageTotal: 494.4
+                    },
+                    cpuHistory: []
                 }
             },
             mounted() {
@@ -917,6 +1045,20 @@
                 // Load services and projects from API
                 this.loadServices();
                 this.loadProjects();
+                
+                // Initialize CPU history with some dummy data points
+                for (let i = 0; i < 20; i++) {
+                    this.cpuHistory.push(0);
+                }
+                
+                // Load Docker stats after a short delay
+                setTimeout(() => {
+                    this.loadDockerStats(); // First load immediately
+                    // Auto-refresh Docker stats every 5 seconds
+                    setInterval(() => {
+                        this.loadDockerStats();
+                    }, 5000);
+                }, 500);
             },
             methods: {
           async loadServices() {
@@ -1117,6 +1259,54 @@
               }
             }
           },
+            this.dockerStats.loading = true;
+            try {
+              const response = await fetch('/docker-stats.php');
+              const data = await response.json();
+
+              if (data.success && data.aggregate) {
+                // Update CPU stats
+                const cpuPercent = data.aggregate.cpu_average || 0;
+                this.dockerStats.cpuPercent = cpuPercent.toFixed(1);
+                
+                // Update CPU breakdown (simulated for now)
+                const remaining = 100 - cpuPercent;
+                this.dockerStats.cpuBreakdown.system = (cpuPercent * 0.4).toFixed(1);
+                this.dockerStats.cpuBreakdown.user = (cpuPercent * 0.6).toFixed(1);
+                this.dockerStats.cpuBreakdown.nice = 0.0;
+                this.dockerStats.cpuBreakdown.idle = remaining.toFixed(1);
+
+                // Update memory stats
+                this.dockerStats.memoryUsed = data.aggregate.memory_used_gb.toFixed(1);
+                this.dockerStats.memoryTotal = data.aggregate.memory_total_gb.toFixed(1);
+                
+                // Update memory breakdown (simulated proportions)
+                const memUsed = data.aggregate.memory_used_gb;
+                this.dockerStats.memoryBreakdown.pressure = data.aggregate.memory_percent.toFixed(1);
+                this.dockerStats.memoryBreakdown.app = (memUsed * 0.48).toFixed(1);
+                this.dockerStats.memoryBreakdown.wired = (memUsed * 0.22).toFixed(1);
+                this.dockerStats.memoryBreakdown.compressed = (memUsed * 0.30).toFixed(1);
+
+                // Update storage stats
+                if (data.disk) {
+                  this.dockerStats.storageUsed = data.disk.used_gb.toFixed(1);
+                  this.dockerStats.storageTotal = data.disk.total_gb.toFixed(1);
+                }
+
+                // Add to CPU history
+                this.cpuHistory.push(cpuPercent);
+                if (this.cpuHistory.length > 20) {
+                  this.cpuHistory.shift();
+                }
+
+                // Vuetify components update automatically
+              }
+            } catch (error) {
+              console.error('Error loading Docker stats:', error);
+            } finally {
+              this.dockerStats.loading = false;
+            }
+          }
         },
         computed: {
           theme() {
@@ -1164,6 +1354,28 @@
                 loading: this.servicesLoading,
               },
             ];
+          },
+          cpuColor() {
+            const cpu = parseFloat(this.dockerStats.cpuPercent);
+            if (cpu <= 25) return 'success';
+            if (cpu <= 50) return 'warning';
+            if (cpu <= 75) return 'orange';
+            return 'error';
+          },
+          storageColor() {
+            const percent = (parseFloat(this.dockerStats.storageUsed) / 
+                           parseFloat(this.dockerStats.storageTotal)) * 100;
+            if (percent <= 50) return 'success';
+            if (percent <= 75) return 'warning';
+            return 'error';
+          }
+        },
+        watch: {
+          currentView(newView) {
+            // Vuetify components update automatically, no manual chart update needed
+            if (newView === 'dashboard') {
+              // Charts are reactive with v-show
+            }
           }
         }
       });
